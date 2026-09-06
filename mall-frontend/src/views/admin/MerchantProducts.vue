@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { deleteProduct, getMyProducts, saveProduct, updateProductStatus, type Product, type Sku } from '@/api/product'
+import { deleteProduct, getMyProducts, saveProduct, updateProductStatus, uploadProductImage, type Product, type Sku } from '@/api/product'
 import { getCategories, type Category } from '@/api/catalog'
 
 const list = ref<Product[]>([])
@@ -20,6 +20,7 @@ const form = reactive({
   status: 0,
   skus: [] as Sku[],
 })
+const uploading = ref(false)
 
 async function load() {
   const res = await getMyProducts(page.value, 10)
@@ -65,6 +66,28 @@ async function submit() {
   ElMessage.success('已保存')
   dialog.value = false
   load()
+}
+
+/** 选择图片 → 上传 MinIO → 回填主图 URL（数据库存 URL） */
+async function pickImage() {
+  const input = document.getElementById('img-input') as HTMLInputElement | null
+  input?.click()
+}
+
+async function onFileChange(ev: Event) {
+  const file = (ev.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  uploading.value = true
+  try {
+    const res = await uploadProductImage(file)
+    form.mainImg = res.url
+    ElMessage.success('图片已上传')
+  } catch {
+    /* 拦截器统一提示 */
+  } finally {
+    uploading.value = false
+    ;(ev.target as HTMLInputElement).value = ''
+  }
 }
 
 async function toggle(row: Product) {
@@ -137,8 +160,18 @@ onMounted(async () => {
             <el-option v-for="c in categories" :key="c.id" :value="c.id" :label="c.name" />
           </el-select>
         </el-form-item>
-        <el-form-item label="主图 URL">
-          <el-input v-model="form.mainImg" />
+        <el-form-item label="主图">
+          <div class="img-uploader">
+            <img v-if="form.mainImg" :src="form.mainImg" class="img-preview" :alt="form.title" />
+            <div v-else class="img-placeholder">图片预览</div>
+            <div class="img-side">
+              <el-button size="small" type="primary" :loading="uploading" @click="pickImage">
+                {{ uploading ? '上传中…' : '上传图片' }}
+              </el-button>
+              <el-input v-model="form.mainImg" size="small" placeholder="或直接粘贴图片 URL" class="img-url" />
+            </div>
+            <input id="img-input" type="file" accept="image/*" hidden @change="onFileChange" />
+          </div>
         </el-form-item>
         <el-form-item label="图文详情">
           <el-input v-model="form.detail" type="textarea" :rows="2" />
@@ -202,6 +235,37 @@ onMounted(async () => {
   width: 110px;
 }
 .sku-remark {
+  flex: 1;
+}
+.img-uploader {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.img-preview {
+  width: 96px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--md-color-line);
+  background: var(--md-color-bg-tint);
+}
+.img-placeholder {
+  width: 96px;
+  height: 72px;
+  border-radius: 6px;
+  border: 1px dashed var(--md-color-line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--md-color-ink-sub);
+  font-size: 12px;
+  background: var(--md-color-bg-tint);
+}
+.img-side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   flex: 1;
 }
 </style>

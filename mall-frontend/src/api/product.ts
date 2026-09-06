@@ -67,3 +67,12 @@ export const saveProduct = (data: ProductForm) =>
 export const updateProductStatus = (id: number, status: number) =>
   http.put(`/product/${id}/status`, null, { params: { status } })
 export const deleteProduct = (id: number) => http.delete(`/product/${id}`)
+
+/** 商品图片上传（MinIO，返回公开 URL；数据库存该 URL） */
+export const uploadProductImage = (file: File) => {
+  const fd = new FormData()
+  fd.append('file', file)
+  return http.post<never, { url: string }>('/product/upload/image', fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
