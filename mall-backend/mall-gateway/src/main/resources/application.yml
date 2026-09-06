@@ -1,0 +1,49 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: mall-gateway
+  cloud:
+    nacos:
+      server-addr: 192.168.193.131:8848
+      discovery:
+        server-addr: 192.168.193.131:8848
+    gateway:
+      routes:
+        - id: mall-auth-service
+          uri: lb://mall-auth-service
+          predicates:
+            - Path=/api/auth/**
+        - id: mall-user-service
+          uri: lb://mall-user-service
+          predicates:
+            - Path=/api/user/**,/api/admin/users/**
+        - id: mall-merchant-service
+          uri: lb://mall-merchant-service
+          predicates:
+            - Path=/api/merchant/**,/api/admin/merchants/**,/api/admin/withdrawals/**
+        - id: mall-product-service
+          uri: lb://mall-product-service
+          predicates:
+            - Path=/api/portal/products/**,/api/portal/categories/**,/api/admin/categories/**,/api/admin/adverts/**,/api/admin/products/**
+        - id: mall-order-service
+          uri: lb://mall-order-service
+          predicates:
+            - Path=/api/order/**,/api/portal/carts/**,/api/admin/orders/**
+        - id: mall-pay-service
+          uri: lb://mall-pay-service
+          predicates:
+            - Path=/api/pay/**,/api/admin/refunds/**
+        - id: mall-report-service
+          uri: lb://mall-report-service
+          predicates:
+            - Path=/api/report/**
+  main:
+    web-application-type: reactive
+
+mall:
+  jwt:
+    # 与 mall-auth-service 必须一致；HS256 要求 >= 32 字符
+    secret: MallX@2026$Secret!Key_AlphaBeta1234
+    expire-seconds: 7200

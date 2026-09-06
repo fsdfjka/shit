@@ -1,0 +1,57 @@
+/* 基础样式：纸面底 + 中文正文 + mono 数字元素 */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+body {
+  font-family: var(--md-font-body);
+  color: var(--md-color-ink);
+  background: var(--md-color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* 票据数字语言：所有"货架价签/订单号/金额"统一 mono */
+.md-num {
+  font-family: var(--md-font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* 琥珀金价签（签名元素）：商品价格块 */
+.md-tag-price {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--md-radius-sm);
+  background: var(--md-color-accent-soft);
+  color: var(--md-color-primary);
+  font-family: var(--md-font-mono);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* 键盘可达性 */
+:focus-visible {
+  outline: 2px solid var(--md-color-accent);
+  outline-offset: 2px;
+}
+
+/* 尊重减弱动画偏好 */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

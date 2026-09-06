@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="mall-product-service" />
+        <module name="mall-order-service" />
+        <module name="mall-pay-service" />
+        <module name="mall-user-service" />
+        <module name="mall-report-service" />
+        <module name="mall-merchant-service" />
+        <module name="mall-auth-service" />
+        <module name="mall-common" />
+        <module name="mall-gateway" />
+      </profile>
+    </annotationProcessing>
+  </component>
+</project>

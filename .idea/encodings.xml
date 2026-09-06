@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$PROJECT_DIR$/mall-backend/mall-auth-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/mall-backend/mall-auth-service/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/mall-backend/mall-common/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/mall-backend/mall-common/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/mall-backend/mall-gateway/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/mall-backend/mall-gateway/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/mall-backend/mall-merchant-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/mall-backend/mall-merchant-service/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/mall-backend/mall-order-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/mall-backend/mall-order-service/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/mall-backend/mall-pay-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/mall-backend/mall-pay-service/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/mall-backend/mall-product-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/mall-backend/mall-product-service/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/mall-backend/mall-report-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/mall-backend/mall-report-service/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/mall-backend/mall-user-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/mall-backend/mall-user-service/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/mall-backend/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/mall-backend/src/main/resources" charset="UTF-8" />
+  </component>
+</project>
