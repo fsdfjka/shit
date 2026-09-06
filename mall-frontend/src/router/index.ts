@@ -16,6 +16,7 @@ const router = createRouter({
         { path: 'product/:id', name: 'product-detail', component: () => import('@/views/mall/ProductDetail.vue') },
         { path: 'cart', name: 'cart', component: () => import('@/views/mall/CartPage.vue') },
         { path: 'orders', name: 'orders', component: () => import('@/views/mall/OrdersPage.vue') },
+        { path: 'pay/:orderNo', name: 'pay', component: () => import('@/views/mall/PayPage.vue') },
         { path: 'login', name: 'login', component: () => import('@/views/mall/Login.vue') },
         { path: 'register', name: 'register', component: () => import('@/views/mall/Register.vue') },
       ],
@@ -33,6 +34,7 @@ const router = createRouter({
         { path: 'withdrawals', name: 'admin-withdrawals', component: () => import('@/views/admin/AdminWithdrawals.vue') },
         { path: 'withdrawal', name: 'merchant-withdrawal', component: () => import('@/views/admin/MerchantWithdrawal.vue') },
         { path: 'shop', name: 'merchant-shop', component: () => import('@/views/admin/MerchantShop.vue') },
+        { path: 'refunds', name: 'admin-refunds', component: () => import('@/views/admin/AdminRefunds.vue') },
         // 报表等页面按里程碑 7 补充
       ],
     },

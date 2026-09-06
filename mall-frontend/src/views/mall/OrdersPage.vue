@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { cancelOrder, getMyOrders, receiveOrder, STATUS_TEXT, type OrderVO } from '@/api/order'
+import { requestRefund } from '@/api/pay'
 
 const TABS = [
   { label: '全部', value: undefined as number | undefined },
@@ -49,6 +50,13 @@ async function receive(order: OrderVO) {
   load()
 }
 
+async function refund(order: OrderVO) {
+  const { value } = await ElMessageBox.prompt('请输入退款原因', '申请退款', { inputValue: '' })
+  await requestRefund(order.orderNo, value ?? '用户申请')
+  ElMessage.success('退款成功（演示渠道即时到账），订单已退款')
+  load()
+}
+
 onMounted(load)
 </script>
 
@@ -84,7 +92,13 @@ onMounted(load)
           <span class="md-num foot-amount">实付 ¥ {{ o.payAmount.toFixed(2) }}</span>
           <span v-if="o.trackingNo" class="foot-log md-num">{{ o.logisticsCompany }} · {{ o.trackingNo }}</span>
           <div class="foot-actions">
+            <el-button v-if="o.status === 0" size="small" type="primary" @click="$router.push(`/pay/${o.orderNo}`)">
+              去支付
+            </el-button>
             <el-button v-if="o.status === 0" size="small" @click="cancel(o)">取消订单</el-button>
+            <el-button v-if="o.status === 1 || o.status === 2" size="small" type="warning" @click="refund(o)">
+              申请退款
+            </el-button>
             <el-button v-if="o.status === 2" size="small" type="success" @click="receive(o)">确认收货</el-button>
           </div>
         </footer>

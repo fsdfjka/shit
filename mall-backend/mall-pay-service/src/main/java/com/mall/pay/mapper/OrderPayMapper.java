@@ -1,0 +1,51 @@
+package com.mall.pay.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
+
+import java.math.BigDecimal;
+
+/**
+ * 直连同库 order 表（支付链路状态同步，单库演示约定）：
+ * 支付成功 -> 订单 0→1；退款申请 -> 订单 1→5；退款成功 -> 5→6。
+ * 全部条件更新：并发下状态机原子；跨服务消息编排为生产演进项（TODO 注释）。
+ */
+@Mapper
+public interface OrderPayMapper {
+
+    @Select("SELECT status, pay_amount FROM `order` WHERE order_no = #{orderNo}")
+    OrderPayView selectByOrderNo(@Param("orderNo") String orderNo);
+
+    /** 订单归属商家（余额入账/扣回需要） */
+    @Select("SELECT merchant_id FROM `order` WHERE order_no = #{orderNo}")
+    Long selectMerchantId(@Param("orderNo") String orderNo);
+
+    /** 支付成功同步订单：仅待支付可置已支付（0 行=订单已取消/已发货，不重复入账） */
+    @Update("UPDATE `order` SET status = 1, last_status = 0, pay_time = NOW() " +
+            "WHERE order_no = #{orderNo} AND status = 0")
+    int markPaid(@Param("orderNo") String orderNo);
+
+    /** 退款申请：仅已支付可置退款中 */
+    @Update("UPDATE `order` SET status = 5, last_status = 1 WHERE order_no = #{orderNo} AND status = 1")
+    int markRefunding(@Param("orderNo") String orderNo);
+
+    /** 退款成功：仅退款中可置已退款 */
+    @Update("UPDATE `order` SET status = 6, last_status = 5 WHERE order_no = #{orderNo} AND status = 5")
+    int markRefunded(@Param("orderNo") String orderNo);
+
+    /** 商家余额入账（同库直写；生产应发 balance 事件，见 MerchantBalanceMapper 注释） */
+    @Update("UPDATE merchant SET balance = balance + #{amount} WHERE id = #{merchantId}")
+    int addMerchantBalance(@Param("merchantId") Long merchantId, @Param("amount") BigDecimal amount);
+
+    /** 退款扣回商家余额（0 行=金额不足时由日志告警，演示默认可扣） */
+    @Update("UPDATE merchant SET balance = balance - #{amount} WHERE id = #{merchantId} AND balance >= #{amount}")
+    int deductMerchantBalance(@Param("merchantId") Long merchantId, @Param("amount") BigDecimal amount);
+
+    @lombok.Data
+    class OrderPayView {
+        private Integer status;
+        private BigDecimal payAmount;
+    }
+}
