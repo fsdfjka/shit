@@ -300,11 +300,21 @@ INSERT INTO category (id, parent_id, name, icon, sort, status) VALUES
 (4, 1, '手机通讯', NULL, 1, 0),
 (5, 3, '男装', NULL, 1, 0);
 
--- 商品（卖家 1：数码；卖家 2：服饰）
+-- 商品（卖家 1：数码；卖家 2：服饰）；13 商品 / 23 SKU，图片见 mall-frontend/public/img（scripts/gen_images.py 生成）
 INSERT INTO product (id, merchant_id, category_id, title, subtitle, main_img, detail, status, sale_count) VALUES
 (1, 1, 4, 'NovaX 5G 手机', '8+256G 双色现货', '/img/product/phone.jpg', '5G 旗舰,首发直降', 0, 120),
 (2, 1, 1, '蓝牙耳机 Pro', '主动降噪,长续航', '/img/product/earphone.jpg', '黑白两色可选', 0, 300),
-(3, 2, 5, '纯棉基础款白T恤', '100% 棉,透气舒适', '/img/product/tshirt.jpg', '男女同款', 0, 500);
+(3, 2, 5, '纯棉基础款白T恤', '100% 棉,透气舒适', '/img/product/tshirt.jpg', '男女同款', 0, 500),
+(4, 1, 1, 'WatchX 智能手表', '全天候健康监测', '/img/product/watch.jpg', '心率/血氧/睡眠监测,两周续航', 0, 88),
+(5, 1, 2, '无线快充充电座', '15W 无线快充', '/img/product/charger.jpg', '兼容主流机型', 0, 156),
+(6, 1, 2, '便携蓝牙音箱', '360° 环绕声场', '/img/product/speaker.jpg', 'IPX6 防水,10 小时续航', 0, 212),
+(7, 1, 2, '机械键盘 87 键', '红轴热插拔', '/img/product/keyboard.jpg', 'RGB 背光', 0, 74),
+(8, 1, 4, 'NovaX K 至尊版', '12+512G 星空黑', '/img/product/phone.jpg', '商务旗舰,大内存长续航', 0, 45),
+(9, 2, 3, '经典棒球帽', '水洗做旧质感', '/img/product/cap.jpg', '男女同款,可调节', 0, 260),
+(10, 2, 3, '针织围巾', '柔软保暖', '/img/product/scarf.jpg', '秋冬新款', 0, 188),
+(11, 2, 5, '连帽卫衣', '宽松版型', '/img/product/hoodie.jpg', '重磅纯棉,落肩袖', 0, 330),
+(12, 2, 3, '卡通拖鞋', '防滑软底', '/img/product/slipper.jpg', '居家外穿两用', 0, 420),
+(13, 2, 3, '简约双肩包', '15 寸电脑仓', '/img/product/backpack.jpg', '防泼水面料', 0, 140);
 
 -- SKU（同商品多规格；库存即 DB 基准库存，Redis 预热后使用）
 INSERT INTO sku (id, product_id, spec_json, price, stock, status, remark) VALUES
@@ -312,12 +322,32 @@ INSERT INTO sku (id, product_id, spec_json, price, stock, status, remark) VALUES
 (2, 1, '{"颜色":"星光银","存储":"256G"}', 3299.00, 100, 0, '标准版'),
 (3, 2, '{"颜色":"白色"}', 199.00, 500, 0, NULL),
 (4, 3, '{"颜色":"白色","尺码":"L"}', 79.00, 300, 0, NULL),
-(5, 3, '{"颜色":"黑色","尺码":"XL"}', 79.00, 300, 0, NULL);
+(5, 3, '{"颜色":"黑色","尺码":"XL"}', 79.00, 300, 0, NULL),
+(6, 4, '{"颜色":"曜石黑"}', 899.00, 200, 0, NULL),
+(7, 4, '{"颜色":"星光银"}', 899.00, 200, 0, NULL),
+(8, 5, '{"颜色":"白色"}', 129.00, 400, 0, NULL),
+(9, 5, '{"颜色":"黑色"}', 129.00, 400, 0, NULL),
+(10, 6, '{"颜色":"蓝色"}', 329.00, 300, 0, NULL),
+(11, 7, '{"颜色":"深空灰","轴体":"红轴"}', 499.00, 150, 0, NULL),
+(12, 7, '{"颜色":"白色","轴体":"茶轴"}', 499.00, 150, 0, NULL),
+(13, 8, '{"颜色":"星空黑","存储":"512G"}', 4599.00, 60, 0, '限量'),
+(14, 9, '{"颜色":"黑色"}', 59.00, 500, 0, NULL),
+(15, 9, '{"颜色":"卡其"}', 59.00, 500, 0, NULL),
+(16, 10, '{"颜色":"驼色"}', 89.00, 400, 0, NULL),
+(17, 10, '{"颜色":"灰色"}', 89.00, 400, 0, NULL),
+(18, 11, '{"颜色":"白色","尺码":"M"}', 199.00, 250, 0, NULL),
+(19, 11, '{"颜色":"灰色","尺码":"L"}', 199.00, 250, 0, NULL),
+(20, 12, '{"颜色":"黄色","尺码":"40"}', 49.00, 500, 0, NULL),
+(21, 12, '{"颜色":"绿色","尺码":"41"}', 49.00, 500, 0, NULL),
+(22, 13, '{"颜色":"黑色"}', 169.00, 350, 0, NULL),
+(23, 13, '{"颜色":"灰色"}', 169.00, 350, 0, NULL);
 
 -- 广告位
 INSERT INTO advert (id, title, img_url, link_url, sort, status) VALUES
 (1, '开学季数码专场', '/img/ad/ad1.jpg', '/category/1', 1, 0),
-(2, '新品服饰上市', '/img/ad/ad2.jpg', '/category/3', 2, 0);
+(2, '新品服饰上市', '/img/ad/ad2.jpg', '/category/3', 2, 0),
+(3, '数码周大促', '/img/ad/ad3.jpg', '/category/1', 3, 0),
+(4, '焕新穿搭季', '/img/ad/ad4.jpg', '/category/3', 4, 0);
 
 -- 用户地址（user1 默认收货地址）
 INSERT INTO user_address (id, user_id, receiver, phone, province, city, district, detail, is_default) VALUES

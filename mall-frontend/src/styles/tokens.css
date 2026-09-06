@@ -1,35 +1,48 @@
 /* =============================================================
    Mall-X 设计令牌（Design Tokens）
-   主题取"交易票据"世界：午夜蓝墨 + 琥珀金价签 + mono 订单体
+   主题取"电商货架"世界：橙红主色 + 白底商品网格 + 大字红色价格
+   （后台管理沿用深色墨蓝 + 橙红强调，两套语义并存）
    ============================================================= */
 :root {
-  /* 色彩 */
+  /* 品牌主色（橙红 · 淘宝风 CTA/价格） */
+  --mx-red: #ff5000;
+  --mx-red-deep: #e23e00;
+  --mx-red-soft: #fff3ec;
+  --mx-ink: #1d2129;              /* 标题墨色 */
+  --mx-ink-2: #6b7280;            /* 次级文字 */
+  --mx-bg: #ffffff;               /* 页面白 */
+  --mx-bg-2: #f5f6f7;             /* 灰底 */
+  --mx-line: #ececec;             /* 分割线 */
+  --mx-warn: #ffb800;             /* 促销黄 */
+  --mx-ok: #00b578;               /* 状态绿 */
+
+  /* 延续旧 token（后台页所有组件仍引用，避免大面积回归） */
   --md-color-primary: #1f2a44;        /* 午夜蓝 · 印章墨色 */
   --md-color-primary-dark: #182136;   /* 深一档（hover） */
-  --md-color-accent: #e8b04b;         /* 琥珀金 · 金额/价签 */
-  --md-color-accent-soft: #fdf3dd;    /* 琥珀金衬底 */
-  --md-color-bg: #ffffff;             /* 纸面 */
-  --md-color-bg-tint: #f4f6fa;        /* 后台底 · 淡蓝灰 */
-  --md-color-ink: #1a1d23;            /* 正文字 */
-  --md-color-ink-sub: #5c6470;        /* 次级文字 */
-  --md-color-line: #e9ecf2;           /* 分割线 */
+  --md-color-accent: var(--mx-red);   /* 强调色统一为品牌橙红 */
+  --md-color-accent-soft: #fff3ec;    /* 橙红衬底 */
+  --md-color-bg: #ffffff;
+  --md-color-bg-tint: #f5f6f7;
+  --md-color-ink: #1d2129;
+  --md-color-ink-sub: #6b7280;
+  --md-color-line: #ececec;
 
   /* 字体 */
-  --md-font-display: 'Noto Serif SC', 'Songti SC', serif;      /* 显示体：价格/大标题 */
+  --md-font-display: 'Noto Sans SC', 'PingFang SC', system-ui, sans-serif; /* 标题改中文黑体栈 */
   --md-font-body: 'Noto Sans SC', 'PingFang SC', system-ui, sans-serif;
   --md-font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace; /* 订单号/SKU/金额 */
 
   /* 层级 */
-  --md-shadow-card: 0 1px 3px rgba(26, 29, 35, 0.08), 0 4px 14px rgba(26, 29, 35, 0.05);
+  --md-shadow-card: 0 1px 3px rgba(29, 33, 41, 0.08), 0 4px 14px rgba(29, 33, 41, 0.05);
   --md-radius: 8px;
   --md-radius-sm: 4px;
 
-  /* Element Plus 主色覆盖：整站换蓝为午夜蓝 */
-  --el-color-primary: #1f2a44;
-  --el-color-primary-light-3: #4b5469;
-  --el-color-primary-light-5: #7c8393;
-  --el-color-primary-light-7: #b3b8c2;
-  --el-color-primary-light-8: #ced2d9;
-  --el-color-primary-light-9: #e9eaee;
-  --el-color-primary-dark-2: #182136;
+  /* Element Plus 主色覆盖：主操作/按钮统一品牌橙红 */
+  --el-color-primary: #ff5000;
+  --el-color-primary-light-3: #ff7a3d;
+  --el-color-primary-light-5: #ffa27a;
+  --el-color-primary-light-7: #ffcbb5;
+  --el-color-primary-light-8: #ffe0d1;
+  --el-color-primary-light-9: #fff3ec;
+  --el-color-primary-dark-2: #e23e00;
 }

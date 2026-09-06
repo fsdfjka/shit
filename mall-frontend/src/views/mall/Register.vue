@@ -7,8 +7,13 @@ import { register, merchantApply } from '@/api/auth'
 const route = useRoute()
 const router = useRouter()
 const loading = ref(false)
-/** ?role=merchant 时即商家入驻申请表单 */
-const isMerchant = route.query.role === 'merchant'
+/** ?role=merchant 时即商家入驻申请表单（tab 切换同步 URL） */
+const isMerchant = ref(route.query.role === 'merchant')
+
+function switchRole(v: boolean) {
+  isMerchant.value = v
+  router.replace({ path: '/register', query: v ? { role: 'merchant' } : {} })
+}
 
 const form = reactive({
   username: '',
@@ -58,6 +63,14 @@ async function submit() {
     </aside>
     <main class="form-area">
       <el-form label-position="top" class="form" @submit.prevent="submit">
+        <div class="role-tabs">
+          <button type="button" class="role-tab" :class="{ role_tab_active: !isMerchant }" @click="switchRole(false)">
+            普通用户
+          </button>
+          <button type="button" class="role-tab" :class="{ role_tab_active: isMerchant }" @click="switchRole(true)">
+            商家入驻
+          </button>
+        </div>
         <h2 class="form-title">{{ isMerchant ? '商家入驻申请' : '注册用户' }}</h2>
         <el-form-item label="用户名">
           <el-input v-model="form.username" placeholder="用户名" size="large" />
@@ -144,6 +157,34 @@ async function submit() {
   font-weight: 700;
   font-size: 22px;
   color: var(--md-color-ink);
+}
+.role-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 18px;
+  padding: 4px;
+  background: var(--md-color-bg-tint);
+  border-radius: 999px;
+}
+.role-tab {
+  flex: 1;
+  padding: 9px 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  font-family: var(--md-font-body);
+  font-size: 14px;
+  color: var(--md-color-ink-sub);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.role-tab:hover {
+  color: var(--md-color-primary);
+}
+.role_tab_active {
+  background: var(--md-color-accent);
+  color: var(--md-color-primary);
+  font-weight: 600;
 }
 .submit {
   width: 100%;

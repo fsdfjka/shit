@@ -24,8 +24,31 @@ const receiver = reactive({ name: '', phone: '', address: '' })
 const isLogged = computed(() => !!userStore.token)
 const checkedItems = computed(() => items.value.filter((i) => i.checked === 1))
 const totalAmount = computed(() => checkedItems.value.reduce((s, i) => s + (i.price ?? 0) * i.count, 0))
+const allChecked = computed(() => items.value.length > 0 && checkedItems.value.length === items.value.length)
+
+async function onAllChecked(checked: number) {
+  for (const i of items.value) {
+    if (i.checked !== checked) {
+      if (!isLogged.value) i.checked = checked
+      else await updateCartChecked(i.skuId, checked)
+    }
+  }
+  if (!isLogged.value) writeGuestCart(items.value as GuestItem[])
+}
 
 const GUEST_KEY = 'mall_guest_cart'
+
+/** 规格 JSON → "颜色:白色;尺码:L" 可读文本 */
+function formatSpec(specJson?: string): string {
+  if (!specJson) return '单规格'
+  try {
+    const spec: Record<string, string> = JSON.parse(specJson)
+    const parts = Object.entries(spec).map(([k, v]) => `${k}：${v}`)
+    return parts.length ? parts.join('；') : '单规格'
+  } catch {
+    return '单规格'
+  }
+}
 
 function readGuestCart(): GuestItem[] {
   try {
@@ -139,13 +162,18 @@ function goOrders() {
   router.push('/orders')
 }
 
+function goPay(orderNo: string) {
+  payDialog.value = false
+  router.push(`/pay/${orderNo}`)
+}
+
 onMounted(load)
 </script>
 
 <template>
   <div class="cart">
     <header class="head">
-      <router-link class="brand" to="/">MX<span class="brand-sub">购物车</span></router-link>
+      <router-link class="brand" to="/"><span class="brand-logo">MX</span><span class="brand-sub">购物车</span></router-link>
       <router-link class="nav-link" to="/orders">我的订单</router-link>
     </header>
 
@@ -153,53 +181,42 @@ onMounted(load)
       游客购物车暂存本机，<router-link to="/login">登录</router-link>后自动合并到账户。
     </p>
 
-    <el-table :data="items" v-loading="loading" class="table">
-      <el-table-column width="50">
-        <template #default="{ row }">
-          <el-checkbox :model-value="row.checked === 1" @change="(v: string | number | boolean) => onChecked(row, v ? 1 : 0)" />
-        </template>
-      </el-table-column>
-      <el-table-column label="商品" min-width="240">
-        <template #default="{ row }">
-          <div class="goods">
-            <div class="thumb">
-              <img v-if="row.mainImg" :src="row.mainImg" alt="" />
-            </div>
-            <div>
-              <p class="title">{{ row.productTitle || '商品' }}</p>
-              <p class="spec md-num">{{ row.specJson || '『规格' }}</p>
-            </div>
+    <div v-loading="loading" class="cart-list">
+      <div class="cart-head">
+        <el-checkbox :model-value="allChecked" @change="(v: string | number | boolean) => onAllChecked(v ? 1 : 0)" />
+        <span class="head-name">商品</span>
+        <span class="head-price">单价</span>
+        <span class="head-count">数量</span>
+        <span class="head-amount">小计</span>
+        <span class="head-op">操作</span>
+      </div>
+
+      <div v-for="row in items" :key="row.skuId" class="cart-row">
+        <el-checkbox :model-value="row.checked === 1" @change="(v: string | number | boolean) => onChecked(row, v ? 1 : 0)" />
+        <div class="goods">
+          <div class="thumb"><img v-if="row.mainImg" :src="row.mainImg" alt="" /></div>
+          <div>
+            <p class="title">{{ row.productTitle || '商品' }}</p>
+            <p class="spec">{{ formatSpec(row.specJson) }}</p>
           </div>
-        </template>
-      </el-table-column>
-      <el-table-column label="价格" width="120">
-        <template #default="{ row }">
-          <span class="md-num price">¥ {{ (row.price ?? 0).toFixed(2) }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="数量" width="160">
-        <template #default="{ row }">
-          <el-input-number
-            :model-value="row.count"
-            :min="1"
-            size="small"
-            @change="(v: number | undefined) => onCountChange(row, v ?? 1)"
-          />
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="80">
-        <template #default="{ row }">
-          <el-button link type="danger" @click="remove(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+        </div>
+        <span class="md-num price">¥ {{ (row.price ?? 0).toFixed(2) }}</span>
+        <div class="count-box">
+          <button class="count-btn" @click="onCountChange(row, Math.max(1, (row.count ?? 1) - 1))">−</button>
+          <input class="count-input md-num" :value="row.count" readonly />
+          <button class="count-btn" @click="onCountChange(row, (row.count ?? 1) + 1)">＋</button>
+        </div>
+        <span class="md-num amount">¥ {{ ((row.price ?? 0) * (row.count ?? 0)).toFixed(2) }}</span>
+        <button class="del" @click="remove(row)">删除</button>
+      </div>
+    </div>
 
     <div v-if="items.length" class="bar">
-      <span class="md-num bar-count">已勾选 {{ checkedItems.length }} 项</span>
-      <span class="md-num bar-total">合计 ¥ {{ totalAmount.toFixed(2) }}</span>
-      <el-button type="primary" size="large" @click="openCheckout">去结算</el-button>
+      <span class="md-num bar-count">已选 {{ checkedItems.length }} 项</span>
+      <span class="bar-total">合计 <span class="md-num bar-num">¥ {{ totalAmount.toFixed(2) }}</span></span>
+      <el-button type="primary" size="large" class="bar-checkout" @click="openCheckout">去结算({{ checkedItems.length }})</el-button>
     </div>
-    <p v-else-if="!loading" class="empty">购物车空空如也——去货架挑点东西吧</p>
+    <p v-else-if="!loading" class="empty">购物车空空如也 —— <router-link to="/">去货架挑点东西</router-link></p>
 
     <el-dialog v-model="checkoutDialog" title="填写收货信息（下单快照）" width="460">
       <el-form label-width="80px">
@@ -219,12 +236,14 @@ onMounted(load)
       </template>
     </el-dialog>
 
-    <el-dialog v-model="payDialog" title="下单成功" width="420">
+    <el-dialog v-model="payDialog" title="下单成功" width="440">
       <p class="pay-tip">已拆分为 {{ createdOrders.length }} 笔订单（跨店购物车逐店一单）：</p>
-      <p v-for="no in createdOrders" :key="no" class="md-num pay-no">{{ no }}</p>
-      <p class="pay-note">支付功能在里程碑 6 接入（支付宝沙箱）。</p>
+      <p v-for="no in createdOrders" :key="no" class="pay-row">
+        <span class="md-num pay-no">{{ no }}</span>
+        <el-button size="small" type="primary" @click="goPay(no)">去支付</el-button>
+      </p>
       <template #footer>
-        <el-button type="primary" @click="goOrders">查看订单</el-button>
+        <el-button @click="goOrders">稍后支付，查看订单</el-button>
       </template>
     </el-dialog>
   </div>
@@ -232,7 +251,7 @@ onMounted(load)
 
 <style scoped>
 .cart {
-  max-width: 1160px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 24px 24px 64px;
 }
@@ -240,35 +259,84 @@ onMounted(load)
   display: flex;
   align-items: center;
   gap: 18px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--md-color-line);
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--mx-line);
 }
 .brand {
-  font-family: var(--md-font-display);
-  font-weight: 700;
-  font-size: 20px;
-  color: var(--md-color-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: var(--mx-red);
+  color: #fff;
+  font-weight: 800;
+  font-size: 17px;
 }
 .brand-sub {
-  font-size: 13px;
-  font-weight: 400;
-  color: var(--md-color-ink-sub);
-  margin-left: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--mx-ink);
 }
 .nav-link {
   font-size: 14px;
-  color: var(--md-color-ink-sub);
+  color: var(--mx-ink-2);
+}
+.nav-link:hover {
+  color: var(--mx-red);
 }
 .guest-tip {
   margin: 14px 0;
   font-size: 13px;
-  color: var(--md-color-ink-sub);
+  color: var(--mx-ink-2);
 }
 .guest-tip a {
-  color: var(--md-color-primary);
+  color: var(--mx-red);
 }
-.table {
+
+/* 自定义购物车列表 */
+.cart-list {
   margin-top: 14px;
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid var(--mx-line);
+}
+.cart-head,
+.cart-row {
+  display: grid;
+  grid-template-columns: 40px 1fr 120px 140px 110px 70px;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+}
+.cart-head {
+  border-bottom: 1px solid var(--mx-line);
+  font-size: 12px;
+  color: var(--mx-ink-2);
+}
+.cart-row {
+  border-bottom: 1px solid var(--mx-line);
+}
+.cart-row:last-child {
+  border-bottom: none;
+}
+.cart-row:hover {
+  background: var(--mx-bg-2);
+}
+.head-name {
+  grid-column: 2;
+}
+.head-price,
+.head-count,
+.head-amount,
+.head-op {
+  text-align: center;
 }
 .goods {
   display: flex;
@@ -276,10 +344,10 @@ onMounted(load)
   gap: 12px;
 }
 .thumb {
-  width: 48px;
-  height: 48px;
-  background: var(--md-color-bg-tint);
-  border-radius: var(--md-radius-sm);
+  width: 64px;
+  height: 64px;
+  background: var(--mx-bg-2);
+  border-radius: 8px;
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -287,54 +355,148 @@ onMounted(load)
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 .title {
   margin: 0;
   font-size: 14px;
+  color: var(--mx-ink);
 }
 .spec {
-  margin: 2px 0 0;
+  margin: 3px 0 0;
   font-size: 12px;
-  color: var(--md-color-ink-sub);
+  color: var(--mx-ink-2);
 }
 .price {
-  font-weight: 600;
-  color: var(--md-color-primary);
+  text-align: center;
+  font-size: 13px;
+  color: var(--mx-ink-2);
 }
-.bar {
+.count-box {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
+  gap: 0;
+}
+.count-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--mx-line);
+  background: #fff;
+  color: var(--mx-ink);
+  font-size: 14px;
+  cursor: pointer;
+}
+.count-btn:hover {
+  border-color: var(--mx-red);
+  color: var(--mx-red);
+}
+.count-input {
+  width: 40px;
+  text-align: center;
+  border: 1px solid var(--mx-line);
+  border-left: none;
+  border-right: none;
+  height: 28px;
+  font-size: 13px;
+  color: var(--mx-ink);
+  outline: none;
+}
+.amount {
+  text-align: center;
+  font-weight: 700;
+  color: var(--mx-red);
+}
+.del {
+  border: none;
+  background: transparent;
+  color: var(--mx-ink-2);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.del:hover {
+  color: var(--mx-red);
+  background: var(--mx-red-soft);
+}
+
+/* 底部结算栏 */
+.bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
   gap: 20px;
   margin-top: 20px;
-  padding: 16px 20px;
-  background: var(--md-color-bg-tint);
-  border-radius: var(--md-radius);
+  padding: 16px 22px;
+  background: #fff;
+  border: 1px solid var(--mx-line);
+  border-radius: 12px;
+  box-shadow: 0 -2px 12px rgba(29, 33, 41, 0.05);
 }
 .bar-count {
   font-size: 13px;
-  color: var(--md-color-ink-sub);
+  color: var(--mx-ink-2);
 }
 .bar-total {
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--md-color-primary);
+  margin-left: auto;
+  font-size: 14px;
+  color: var(--mx-ink-2);
+}
+.bar-num {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--mx-red);
+}
+.bar-checkout {
+  border-radius: 22px;
+  padding: 0 34px;
 }
 .empty {
   text-align: center;
-  color: var(--md-color-ink-sub);
-  padding: 60px 0;
+  color: var(--mx-ink-2);
+  padding: 70px 0;
+}
+.empty a {
+  color: var(--mx-red);
 }
 .pay-tip {
   font-size: 14px;
 }
+.pay-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+}
 .pay-no {
   font-size: 13px;
-  color: var(--md-color-primary);
+  color: var(--mx-red);
   font-weight: 600;
 }
-.pay-note {
-  font-size: 12px;
-  color: var(--md-color-ink-sub);
+
+@media (max-width: 860px) {
+  .cart-head {
+    display: none;
+  }
+  .cart-row {
+    grid-template-columns: 36px 1fr 70px;
+    grid-template-rows: auto auto;
+  }
+  .goods {
+    grid-column: 2;
+  }
+  .price,
+  .count-box {
+    display: none;
+  }
+  .amount {
+    grid-column: 3;
+  }
+  .del {
+    grid-column: 3;
+    grid-row: 2;
+  }
 }
 </style>
