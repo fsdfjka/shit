@@ -6,6 +6,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.stream.Collectors;
 
@@ -37,6 +38,12 @@ public class GlobalExceptionHandler {
             /* 解析失败回退默认文案 */
         }
         return Result.fail(400, msg);
+    }
+
+    /** 文件上传超限：提示明确信息而非"系统繁忙" */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public Result<Void> handlerUploadSize(MaxUploadSizeExceededException e) {
+        return Result.fail(400, "文件过大，请选择 20MB 以内的图片");
     }
 
     @ExceptionHandler(Exception.class)
