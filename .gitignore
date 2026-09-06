@@ -1,0 +1,15 @@
+# IDE
+.idea/
+*.iml
+
+# Node
+node_modules/
+dist/
+*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Maven
+target/

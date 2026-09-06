@@ -1,27 +1,59 @@
 <script setup lang="ts">
-/** 前台首页骨架：类目走廊 + 价签 Hero + 商品目录网格（假数据，接 API 后替换） */
-type Product = {
-  sku: string
-  title: string
-  seller: string
-  price: string
-  img: string
+import { onMounted, ref } from 'vue'
+import { ElMessage } from 'element-plus'
+import { getAdverts, getCategories, type Advert, type Category } from '@/api/catalog'
+import { getProductList, type Product } from '@/api/product'
+import { useUserStore } from '@/stores/user'
+
+const userStore = useUserStore()
+const categories = ref<Category[]>([])
+const adverts = ref<Advert[]>([])
+const products = ref<Product[]>([])
+const total = ref(0)
+const loading = ref(false)
+const activeCategory = ref<number>()
+const keyword = ref('')
+
+async function loadCategories() {
+  categories.value = await getCategories()
 }
 
-const cats = [
-  { code: 'C01', name: '手机数码' },
-  { code: 'C02', name: '家用电器' },
-  { code: 'C03', name: '服饰鞋帽' },
-]
+async function loadAdverts() {
+  adverts.value = await getAdverts()
+}
 
-const products: Product[] = [
-  { sku: 'SKU-256-A', title: 'NovaX 5G 手机 曜石黑', seller: '极客数码旗舰店', price: '3299.00', img: 'linear-gradient(135deg,#dbe3f0,#9fb3d1)' },
-  { sku: 'SKU-256-B', title: 'NovaX 5G 手机 星光银', seller: '极客数码旗舰店', price: '3299.00', img: 'linear-gradient(135deg,#eceff2,#b8c0cc)' },
-  { sku: 'SKU-001-X', title: '蓝牙耳机 Pro 白色', seller: '极客数码旗舰店', price: '199.00', img: 'linear-gradient(135deg,#fdf3dd,#e8b04b)' },
-  { sku: 'SKU-073-L', title: '纯棉基础款白T恤 L', seller: '悦动服饰官方店', price: '79.00', img: 'linear-gradient(135deg,#f5f7fa,#d9dee6)' },
-  { sku: 'SKU-074-X', title: '纯棉基础款黑T恤 XL', seller: '悦动服饰官方店', price: '79.00', img: 'linear-gradient(135deg,#e7e9ed,#9aa2b1)' },
-  { sku: 'SKU-118-K', title: '降噪耳机 Pro 珍珠白', seller: '悦动服饰官方店', price: '499.00', img: 'linear-gradient(135deg,#eef1f6,#c7d0de)' },
-]
+async function loadProducts() {
+  loading.value = true
+  try {
+    const page = await getProductList({
+      page: 1,
+      size: 12,
+      categoryId: activeCategory.value,
+      keyword: keyword.value || undefined,
+    })
+    products.value = page.records
+    total.value = page.total
+  } catch {
+    ElMessage.warning('商品接口暂不可用（服务未启动或未联调）')
+  } finally {
+    loading.value = false
+  }
+}
+
+function pickCategory(id?: number) {
+  activeCategory.value = id
+  loadProducts()
+}
+
+function onSearch() {
+  loadProducts()
+}
+
+onMounted(() => {
+  loadCategories()
+  loadAdverts()
+  loadProducts()
+})
 </script>
 
 <template>
@@ -30,16 +62,22 @@ const products: Product[] = [
       <router-link class="brand" to="/">
         MX<span class="brand-sub">多商家商城</span>
       </router-link>
-      <input class="search" type="search" placeholder="搜索商品 / SKU" />
+      <input v-model="keyword" class="search" type="search" placeholder="搜索商品 / SKU" @keyup.enter="onSearch" />
       <nav class="nav-right">
-        <router-link to="/login" class="nav-link">登录</router-link>
-        <router-link to="/login" class="nav-link">购物车</router-link>
+        <template v-if="userStore.token">
+          <span class="nav-link hi">你好，{{ userStore.nickname || userStore.username }}</span>
+          <router-link class="nav-link" to="/admin">工作台</router-link>
+        </template>
+        <template v-else>
+          <router-link to="/login" class="nav-link">登录</router-link>
+          <router-link to="/register" class="nav-link">注册</router-link>
+        </template>
       </nav>
     </header>
 
     <nav class="cat-walk">
-      <span v-for="c in cats" :key="c.code" class="cat">
-        <b class="md-num">{{ c.code }}</b>
+      <span v-for="c in categories" :key="c.id" class="cat" :class="{ cat_active: activeCategory === c.id && c.parentId === 0 }" @click="pickCategory(c.parentId === 0 ? c.id : undefined)">
+        <b class="md-num">C{{ String(c.id).padStart(2, '0') }}</b>
         {{ c.name }}
       </span>
     </nav>
@@ -51,21 +89,32 @@ const products: Product[] = [
         <p class="hero-sub">多商家入驻 · 每笔订单独立价签</p>
       </div>
       <div class="hero-tag">
-        <span class="md-num hero-tag-label">今日价签 · 手机专场</span>
-        <span class="md-num hero-tag-price">¥ 3299</span>
-        <span class="md-num hero-tag-sku">SKU-256-A</span>
+        <span class="md-num hero-tag-label">今日价签</span>
+        <span class="md-num hero-tag-price">
+          ¥ {{ products.length && products[0].minPrice ? products[0].minPrice.toFixed(2) : '—' }}
+        </span>
+        <span class="md-num hero-tag-sku">共 {{ total }} 件在售</span>
       </div>
     </section>
 
-    <section class="grid">
-      <article v-for="p in products" :key="p.sku" class="card">
-        <div class="card-img" :style="{ background: p.img }" />
+    <section v-if="adverts.length" class="advert-strip">
+      <a v-for="ad in adverts" :key="ad.id" class="advert" href="#" @click.prevent>
+        <span class="md-num advert-tag">AD-{{ String(ad.id).padStart(2, '0') }}</span>
+        <span class="advert-title">{{ ad.title }}</span>
+        <span class="advert-link">{{ ad.linkUrl || '内部位' }}</span>
+      </a>
+    </section>
+
+    <section v-loading="loading" class="grid">
+      <router-link v-for="p in products" :key="p.id" class="card" :to="`/product/${p.id}`">
+        <div class="card-img"><img :src="p.mainImg" :alt="p.title" /></div>
         <div class="card-body">
           <p class="card-title">{{ p.title }}</p>
-          <p class="card-seller md-num">{{ p.seller }}</p>
-          <span class="md-tag-price md-num">¥ {{ p.price }}</span>
+          <p class="card-seller md-num">{{ p.shopName }}</p>
+          <span class="md-tag-price md-num">¥ {{ p.minPrice?.toFixed(2) }}</span>
         </div>
-      </article>
+      </router-link>
+      <p v-if="!loading && !products.length" class="empty">空货架 —— 商家上架后自动出现</p>
     </section>
   </div>
 </template>
@@ -76,7 +125,6 @@ const products: Product[] = [
   margin: 0 auto;
   padding: 0 24px 64px;
 }
-
 .nav {
   display: flex;
   align-items: center;
@@ -100,7 +148,7 @@ const products: Product[] = [
 }
 .search {
   flex: 1;
-  max-width: 420px;
+  max-width: 360px;
   margin-left: auto;
   padding: 9px 14px;
   border: 1px solid var(--md-color-line);
@@ -111,6 +159,7 @@ const products: Product[] = [
 .nav-right {
   display: flex;
   gap: 14px;
+  align-items: center;
 }
 .nav-link {
   font-size: 14px;
@@ -119,11 +168,16 @@ const products: Product[] = [
 .nav-link:hover {
   color: var(--md-color-primary);
 }
+.hi {
+  color: var(--md-color-primary);
+  font-weight: 500;
+}
 
 .cat-walk {
   display: flex;
   gap: 8px;
   padding: 14px 0;
+  flex-wrap: wrap;
 }
 .cat {
   padding: 7px 14px;
@@ -138,8 +192,10 @@ const products: Product[] = [
   font-weight: 600;
   margin-right: 6px;
 }
-.cat:hover {
+.cat:hover,
+.cat_active {
   border-color: var(--md-color-accent);
+  color: var(--md-color-primary);
 }
 
 .hero {
@@ -147,7 +203,7 @@ const products: Product[] = [
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  margin: 26px 0 40px;
+  margin: 26px 0 24px;
   padding: 44px 40px;
   border-radius: var(--md-radius);
   background: var(--md-color-primary);
@@ -195,6 +251,38 @@ const products: Product[] = [
   opacity: 0.8;
 }
 
+.advert-strip {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 26px;
+  flex-wrap: wrap;
+}
+.advert {
+  flex: 1;
+  min-width: 220px;
+  padding: 12px 16px;
+  border: 1px dashed var(--md-color-line);
+  border-radius: var(--md-radius);
+  background: var(--md-color-bg-tint);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.advert-tag {
+  font-size: 11px;
+  color: var(--md-color-accent);
+  letter-spacing: 0.1em;
+}
+.advert-title {
+  font-size: 14px;
+  font-weight: 500;
+}
+.advert-link {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--md-color-ink-sub);
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -213,6 +301,13 @@ const products: Product[] = [
 }
 .card-img {
   height: 150px;
+  background: var(--md-color-bg-tint);
+}
+.card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .card-body {
   padding: 14px 16px 16px;
@@ -229,6 +324,13 @@ const products: Product[] = [
   margin: 0;
   font-size: 12px;
   color: var(--md-color-ink-sub);
+}
+.empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--md-color-ink-sub);
+  font-size: 14px;
+  padding: 40px 0;
 }
 
 @media (max-width: 720px) {

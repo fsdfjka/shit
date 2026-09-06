@@ -21,10 +21,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 /**
- * 全局鉴权过滤器：
- * 1. 白名单（登录/注册）直接放行；
+ * 全局鉴权过滤器（规则表化）：
+ * 1. 游客白名单：登录/注册无需 token；商城前台浏览接口（类目/广告/商品列表/详情）游客可直访；
  * 2. 其余请求校验 Authorization: Bearer <token>，合法则转发 X-User-Id / X-User-Type / X-Username 头；
- * 3. 身份-路径规划：/api/admin/** 要求 type=1（平台管理员），为后续管理员接口兜底。
+ * 3. 按"路径前缀 -> 允许身份类型"规则表鉴权（见表 RULES），不匹配前缀的请求通过（由下游细管）。
  * 下游服务不再解析 JWT，改读请求头（MallConstants.HEADER_*）。
  */
 @Component
@@ -37,18 +37,33 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
 
     private final AntPathMatcher matcher = new AntPathMatcher();
 
-    /** 白名单：登录 / 用户注册 / 商家入驻申请 */
-    private static final String[] WHITE_LIST = {
+    /** 游客白名单：无需 token（登录二字符 + 商城浏览接口） */
+    private static final String[] GUEST_PATHS = {
             "/api/auth/login",
             "/api/auth/register",
-            "/api/auth/register/merchant"
+            "/api/auth/register/merchant",
+            "/api/portal/categories",
+            "/api/portal/adverts",
+            "/api/portal/products"
     };
+
+    /** 路径前缀 -> 允许的身份类型 */
+    private static final Map<String, int[]> RULES = Map.of(
+            "/api/portal/carts/", new int[]{MallConstants.TYPE_USER},
+            "/api/order/", new int[]{MallConstants.TYPE_USER},
+            "/api/pay/", new int[]{MallConstants.TYPE_USER},
+            "/api/user/", new int[]{MallConstants.TYPE_USER},
+            "/api/merchant/", new int[]{MallConstants.TYPE_MERCHANT},
+            "/api/product/", new int[]{MallConstants.TYPE_MERCHANT},
+            "/api/admin/", new int[]{MallConstants.TYPE_ADMIN},
+            "/api/report/", new int[]{MallConstants.TYPE_ADMIN, MallConstants.TYPE_MERCHANT}
+    );
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
-        for (String white : WHITE_LIST) {
-            if (matcher.match(white, path)) {
+        for (String guest : GUEST_PATHS) {
+            if (matcher.matchStart(guest, path)) {
                 return chain.filter(exchange);
             }
         }
@@ -66,8 +81,20 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         }
 
         Integer type = (Integer) claims.get("type");
-        if (path.startsWith("/api/admin/") && type != MallConstants.TYPE_ADMIN) {
-            return deny(exchange, HttpStatus.FORBIDDEN, "无权限访问");
+        for (Map.Entry<String, int[]> rule : RULES.entrySet()) {
+            if (path.startsWith(rule.getKey())) {
+                boolean allowed = false;
+                for (int t : rule.getValue()) {
+                    if (t == type) {
+                        allowed = true;
+                        break;
+                    }
+                }
+                if (!allowed) {
+                    return deny(exchange, HttpStatus.FORBIDDEN, "无权限访问");
+                }
+                break;
+            }
         }
 
         ServerHttpRequest request = exchange.getRequest().mutate()

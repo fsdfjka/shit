@@ -13,9 +13,10 @@ const router = createRouter({
       component: () => import('@/layouts/MallLayout.vue'),
       children: [
         { path: '', name: 'home', component: () => import('@/views/mall/Home.vue') },
+        { path: 'product/:id', name: 'product-detail', component: () => import('@/views/mall/ProductDetail.vue') },
         { path: 'login', name: 'login', component: () => import('@/views/mall/Login.vue') },
         { path: 'register', name: 'register', component: () => import('@/views/mall/Register.vue') },
-        // 商品列表/详情、购物车、订单等页面按里程碑 3/5 补充
+        // 购物车、订单等页面按里程碑 5 补充
       ],
     },
     {
@@ -23,7 +24,10 @@ const router = createRouter({
       component: () => import('@/views/admin/AdminLayout.vue'),
       children: [
         { path: '', name: 'admin-home', component: () => import('@/views/admin/AdminHome.vue') },
-        // 类目/广告/商家审核/订单管理/报表等页面按里程碑 3-7 补充
+        { path: 'categories', name: 'admin-categories', component: () => import('@/views/admin/AdminCategories.vue') },
+        { path: 'adverts', name: 'admin-adverts', component: () => import('@/views/admin/AdminAdverts.vue') },
+        { path: 'products', name: 'merchant-products', component: () => import('@/views/admin/MerchantProducts.vue') },
+        // 商家审核/订单管理/报表等页面按里程碑 4-7 补充
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/' },
