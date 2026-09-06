@@ -20,6 +20,7 @@ const menus = computed(() => {
   ]
   const merchant = [
     { to: '/admin', label: '店铺概览' },
+    { to: '/admin/shop', label: '店铺设置' },
     { to: '/admin/products', label: '商品管理' },
     { to: '/admin/orders', label: '店铺订单' },
     { to: '/admin/withdrawal', label: '提现记录' },

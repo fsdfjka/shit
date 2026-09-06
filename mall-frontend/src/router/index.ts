@@ -29,11 +29,30 @@ const router = createRouter({
         { path: 'adverts', name: 'admin-adverts', component: () => import('@/views/admin/AdminAdverts.vue') },
         { path: 'products', name: 'merchant-products', component: () => import('@/views/admin/MerchantProducts.vue') },
         { path: 'orders', name: 'admin-orders', component: () => import('@/views/admin/AdminOrders.vue') },
-        // 商家审核/报表等页面按里程碑 4/7 补充
+        { path: 'merchants', name: 'admin-merchants', component: () => import('@/views/admin/AdminMerchants.vue') },
+        { path: 'withdrawals', name: 'admin-withdrawals', component: () => import('@/views/admin/AdminWithdrawals.vue') },
+        { path: 'withdrawal', name: 'merchant-withdrawal', component: () => import('@/views/admin/MerchantWithdrawal.vue') },
+        { path: 'shop', name: 'merchant-shop', component: () => import('@/views/admin/MerchantShop.vue') },
+        // 报表等页面按里程碑 7 补充
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
+})
+
+/** 路由守卫：需要登录的页面（我的订单 / 后台）未登录跳登录页；后台仅 type 1/2 可进 */
+router.beforeEach((to) => {
+  const token = localStorage.getItem('mall_token')
+  const type = Number(localStorage.getItem('mall_user_type') ?? -1)
+  const isAdmin = to.path.startsWith('/admin')
+  const needAuth = isAdmin || to.name === 'orders'
+
+  if (needAuth && !token) {
+    return { name: 'login', query: { redirect: to.fullPath } }
+  }
+  if (isAdmin && type !== 1 && type !== 2) {
+    return { name: 'home' }
+  }
 })
 
 export default router

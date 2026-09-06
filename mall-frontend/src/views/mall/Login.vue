@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { login } from '@/api/auth'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 const loading = ref(false)
 
@@ -21,8 +22,9 @@ async function submit() {
     const data = await login(form)
     userStore.setLogin(data)
     ElMessage.success(`欢迎回来，${data.nickname ?? data.username}`)
-    // 用户回前台，管理员/商家进后台；商家侧菜单由后台按 type 区分
-    router.push(data.type === 0 ? '/' : '/admin')
+    // 按守卫跳转意愿回跳，否则按身份默认落地（用户回前台，管理员/商家进后台）
+    const redirect = (route.query.redirect as string) ?? ''
+    router.push(redirect || (data.type === 0 ? '/' : '/admin'))
   } catch {
     /* 错误提示由拦截器统一处理 */
   } finally {
