@@ -27,7 +27,7 @@ const form = reactive({
 async function submit() {
   loading.value = true
   try {
-    if (isMerchant) {
+    if (isMerchant.value) {
       await merchantApply({
         username: form.username,
         password: form.password,
