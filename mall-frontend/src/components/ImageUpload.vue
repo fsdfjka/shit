@@ -1,25 +1,24 @@
 <script setup lang="ts">
 /**
- * 通用图片上传组件（Element Plus el-upload 形态）：选图 → 上传（props.upload 实现）→ 回填 URL。
- * 预览 + 可粘贴 URL 兜底；上传过程 el-upload 自带 loading。
+ * 通用图片上传组件（Element Plus el-upload 形态，纯上传无 URL 输入）：
+ * 点击选图 → 上传（props.upload 实现）→ 预览回填。
  */
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Link, Plus } from '@element-plus/icons-vue'
+import { Plus } from '@element-plus/icons-vue'
 import type { UploadProps, UploadRawFile } from 'element-plus'
 
 const props = defineProps<{
   modelValue: string
   /** 上传实现：返回 URL 字符串 */
   upload: (file: File) => Promise<{ url: string }>
-  placeholder?: string
 }>()
 
 const emit = defineEmits<{ (e: 'update:modelValue', v: string): void }>()
 
 const uploading = ref(false)
 
-/** el-upload：限制图片、单文件 */
+/** el-upload：上传后回填 URL */
 const httpRequest: UploadProps['httpRequest'] = async (options) => {
   const raw = options.file as UploadRawFile
   if (!raw) return
@@ -47,54 +46,37 @@ const beforeUpload: UploadProps['beforeUpload'] = (file: UploadRawFile) => {
   }
   return true
 }
-
 </script>
 
 <template>
-  <div class="iup">
-    <el-upload
-      :show-file-list="false"
-      :http-request="httpRequest"
-      :before-upload="beforeUpload"
-      :disabled="uploading"
-      accept="image/*"
-      class="iup-upload"
-    >
-      <img v-if="modelValue" :src="modelValue" class="iup-preview" alt="" />
-      <div v-else class="iup-placeholder">
-        <el-icon class="iup-plus"><Plus /></el-icon>
-        <span>{{ uploading ? '上传中…' : '上传图片' }}</span>
-      </div>
-    </el-upload>
-    <div class="iup-side">
-      <el-input
-        :model-value="modelValue"
-        size="small"
-        :placeholder="placeholder ?? '或粘贴图片 URL'"
-        class="iup-url"
-        :prefix-icon="Link"
-        @update:model-value="(v: string) => emit('update:modelValue', v)"
-      />
-      <span class="iup-tip">支持 jpg/png/webp，20MB 以内</span>
+  <el-upload
+    :show-file-list="false"
+    :http-request="httpRequest"
+    :before-upload="beforeUpload"
+    :disabled="uploading"
+    accept="image/*"
+    class="iup"
+  >
+    <img v-if="modelValue" :src="modelValue" class="iup-preview" alt="" />
+    <div v-else class="iup-placeholder">
+      <el-icon class="iup-plus"><Plus /></el-icon>
+      <span>点击上传图片</span>
+      <small>jpg / png / webp，20MB 以内</small>
     </div>
-  </div>
+  </el-upload>
 </template>
 
 <style scoped>
-.iup {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-}
-.iup-upload {
-  flex-shrink: 0;
+.iup,
+.iup :deep(.el-upload) {
+  display: inline-block;
 }
 .iup-preview {
   display: block;
-  width: 112px;
-  height: 112px;
+  width: 140px;
+  height: 140px;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid var(--md-color-line);
   background: var(--md-color-bg-tint);
   transition: opacity 0.15s ease;
@@ -103,9 +85,9 @@ const beforeUpload: UploadProps['beforeUpload'] = (file: UploadRawFile) => {
   opacity: 0.85;
 }
 .iup-placeholder {
-  width: 112px;
-  height: 112px;
-  border-radius: 8px;
+  width: 140px;
+  height: 140px;
+  border-radius: 10px;
   border: 1px dashed var(--mx-line);
   display: flex;
   flex-direction: column;
@@ -113,7 +95,7 @@ const beforeUpload: UploadProps['beforeUpload'] = (file: UploadRawFile) => {
   justify-content: center;
   gap: 6px;
   color: var(--mx-ink-2);
-  font-size: 12px;
+  font-size: 13px;
   background: var(--mx-bg-2);
   cursor: pointer;
   transition: all 0.15s ease;
@@ -122,17 +104,11 @@ const beforeUpload: UploadProps['beforeUpload'] = (file: UploadRawFile) => {
   border-color: var(--mx-red);
   color: var(--mx-red);
 }
+.iup-placeholder small {
+  font-size: 11px;
+  opacity: 0.7;
+}
 .iup-plus {
-  font-size: 20px;
-}
-.iup-side {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex: 1;
-}
-.iup-tip {
-  font-size: 12px;
-  color: var(--mx-ink-2);
+  font-size: 22px;
 }
 </style>
