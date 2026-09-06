@@ -79,9 +79,9 @@
 
 | # | 任务 | 状态 | 完成日期 | 说明 |
 |---|---|---|---|---|
-| 9.1 | 全模块接口联调（**此时才启用测试**） | □ | | |
-| 9.2 | Docker 镜像打包 + 部署文档 | □ | | |
-| 9.3 | 全套项目文档（需求/数据库/概要/接口/日报） | □ | | |
+| 9.1 | 全模块接口联调（**此时才启用测试**） | ▶ | | **代码与配置已就绪**（网关路由/services 全部编译通过），执行前置为运行环境就绪：192.168.193.131 中间件（docker compose up -d）+ MySQL localhost 初始化 init.sql；届时执行全链路联调 + JUnit 用例 + 下单/支付压测。按既定约定未提前做联调测试 |
+| 9.2 | Docker 镜像打包 + 部署文档 | ✅ | 2026-09-06 | docker/docker-compose.yml（nacos2.3/redis7.2/rocketmq5.1.4+dashboard/sentinel-dashboard）、broker.conf（brokerIP1 宿主）、通用 Dockerfile（JDK17）；docs/deploy.md：compose 启动→建库→打包镜像→启动顺序→演示参数（延迟等级 3=10s 演示） |
+| 9.3 | 全套项目文档（需求/数据库/概要/接口/日报） | ✅ | 2026-09-06 | docs/requirements.md（角色/功能/非功能/验收）、architecture.md（拓扑/服务边界/三大时序/鉴权）、api.md（全端点清单）、daily-report.md（日报模板）、database-design.md（已有）+ CLAUDE.md 总纲 |
 
 ## 环境参数（写死在各服务 application.yml）
 

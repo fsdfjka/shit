@@ -1,0 +1,70 @@
+# =============================================================
+# Mall-X 中间件编排（部署到 192.168.193.131 的 Docker 主机）
+# 各微服务 application.yml 中：Nacos/Redis/RocketMQ 指向 192.168.193.131
+# MySQL 按约定保留在 localhost（不入容器）。
+# 用法：docker compose up -d
+# =============================================================
+services:
+  nacos:
+    image: nacos/nacos-server:v2.3.2
+    container_name: mall-nacos
+    environment:
+      - MODE=standalone
+      - NACOS_AUTH_ENABLE=false
+      - JVM_XMS=256m
+      - JVM_XMX=512m
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.2
+    container_name: mall-redis
+    command: redis-server --requirepass mall123
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    # 注意：项目 application.yml 暂未配置密码——如需启用，同步修改各服务:
+    # spring.data.redis.password: mall123（当前默认无密码，避免演示环境误连失败）
+
+  rocketmq-namesrv:
+    image: apache/rocketmq:5.1.4
+    container_name: mall-rocketmq-namesrv
+    command: sh mqnamesrv
+    ports:
+      - "9876:9876"
+    restart: unless-stopped
+
+  rocketmq-broker:
+    image: apache/rocketmq:5.1.4
+    container_name: mall-rocketmq-broker
+    depends_on:
+      - rocketmq-namesrv
+    command: sh mqbroker -n 192.168.193.131:9876
+    environment:
+      - JAVA_OPT_EXT=-Xms512m -Xmx512m
+    ports:
+      - "10909:10909"
+      - "10911:10911"
+    volumes:
+      - ./broker.conf:/home/rocketmq/rocketmq-5.1.4/conf/broker.conf
+    restart: unless-stopped
+
+  rocketmq-dashboard:
+    image: apacherocketmq/rocketmq-dashboard:latest
+    container_name: mall-rocketmq-dashboard
+    depends_on:
+      - rocketmq-namesrv
+    environment:
+      - JAVA_OPTS=-Drocketmq.namesrv.addr=192.168.193.131:9876
+    ports:
+      - "8180:8080"
+    restart: unless-stopped
+
+  sentinel-dashboard:
+    image: bluereach/sentinel-dashboard:1.8.6
+    container_name: mall-sentinel-dashboard
+    ports:
+      - "8858:8858"
+    restart: unless-stopped
