@@ -1,12 +1,28 @@
 import axios from 'axios'
+import JSONbig from 'json-bigint'
 import { ElMessage } from 'element-plus'
 import router from '@/router'
 import { useUserStore } from '@/stores/user'
+
+/** 大整数安全 JSON 解析：雪花 ID（19 位）超过 JS MAX_SAFE_INTEGER，
+ *  默认 JSON.parse 会丢精度（如 2096571827303944193 -> ...4200），
+ *  导致按 id 请求(审核/提现/购物车等)报"不存在"。storeAsString 将超长整数保留为字符串。 */
+const jsonBig = JSONbig({ storeAsString: true })
 
 /** Axios 实例：baseURL /api（vite 代理到网关 8090；也可由 VITE_API_BASE 指到网关直连） */
 const http = axios.create({
   baseURL: import.meta.env.VITE_API_BASE ?? '/api',
   timeout: 15000,
+  transformResponse: [
+    (data: unknown) => {
+      if (typeof data !== 'string' || !data) return data
+      try {
+        return jsonBig.parse(data)
+      } catch {
+        return data
+      }
+    },
+  ],
 })
 
 // 请求拦截器：携带 token

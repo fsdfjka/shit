@@ -3,6 +3,7 @@ package com.mall.order;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import com.mall.common.MyMetaObjectHandler;
 import org.springframework.context.annotation.Import;
 
@@ -13,6 +14,7 @@ import org.springframework.context.annotation.Import;
 @SpringBootApplication(scanBasePackages = "com.mall")
 @MapperScan("com.mall.order.mapper")
 @Import(MyMetaObjectHandler.class)
+@EnableScheduling
 public class OrderApplication {
 
     public static void main(String[] args) {

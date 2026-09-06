@@ -18,6 +18,26 @@ const total = ref(0)
 const page = ref(1)
 const status = ref<number | undefined>(undefined)
 const loading = ref(false)
+/** 各状态数量（顶部统计栏；undefined 为全部） */
+const counts = ref<Record<number, number>>({})
+
+/** 商品 emoji 图标（无图场景兜底，skuId 稳定取模） */
+function itemIcon(skuId: number | string): string {
+  const ICONS = ['📦', '📱', '🎧', '👕', '📷', '🔌', '🔊', '⌨️', '🧢', '🧣', '🥿', '🎒']
+  return ICONS[Number(skuId) % ICONS.length]
+}
+
+/** 规格 JSON → 可读文本 */
+function formatSpec(specJson?: string): string {
+  if (!specJson) return '-'
+  try {
+    const spec: Record<string, string> = JSON.parse(specJson)
+    const parts = Object.entries(spec).map(([k, v]) => `${k}：${v}`)
+    return parts.length ? parts.join('；') : '-'
+  } catch {
+    return specJson
+  }
+}
 
 async function load() {
   loading.value = true
@@ -27,6 +47,21 @@ async function load() {
     total.value = res.total
   } finally {
     loading.value = false
+  }
+}
+
+/** 顶部统计栏：并行取各状态数量 */
+async function loadCounts() {
+  try {
+    const entries = await Promise.all(
+      TABS.map(async (t) => {
+        const res = await getMyOrders(t.value, 1, 1)
+        return [t.value ?? -1, res.total] as [number, number]
+      }),
+    )
+    counts.value = Object.fromEntries(entries)
+  } catch {
+    /* 统计失败不影响列表 */
   }
 }
 
@@ -57,15 +92,25 @@ async function refund(order: OrderVO) {
   load()
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  loadCounts()
+})
 </script>
 
 <template>
   <div class="orders">
     <header class="head">
-      <router-link class="brand" to="/">MX<span class="brand-sub">我的订单</span></router-link>
+      <router-link class="brand" to="/"><span class="brand-logo">MX</span><span class="brand-sub">我的订单</span></router-link>
       <router-link class="nav-link" to="/cart">购物车</router-link>
     </header>
+
+    <section class="stats">
+      <div v-for="t in TABS" :key="t.label" class="stat" @click="pickTab(t.value)">
+        <span class="stat-num md-num">{{ t.value === undefined ? total : counts[t.value] ?? 0 }}</span>
+        <span class="stat-label">{{ t.label }}</span>
+      </div>
+    </section>
 
     <el-tabs v-model="status" class="tabs" @tab-change="() => {}">
       <el-tab-pane v-for="t in TABS" :key="t.label" :name="t.value ?? 'all'" :label="t.label" />
@@ -75,22 +120,32 @@ onMounted(load)
     <template v-else>
       <article v-for="o in orders" :key="o.orderNo" class="order">
         <header class="order-head">
-          <span class="md-num order-no">{{ o.orderNo }}</span>
-          <span class="order-status md-num">ST{{ o.status }}</span>
-          <span class="order-status-text">{{ STATUS_TEXT[o.status] }}</span>
-          <span class="order-time md-num">{{ o.createTime?.replace('T', ' ').slice(0, 19) }}</span>
+          <span class="order-no md-num">订单 {{ o.orderNo }}</span>
+          <span class="order-status-text">{{ STATUS_TEXT[o.status] ?? `状态 ${o.status}` }}</span>
+          <span class="order-time md-num">下单 {{ o.createTime?.replace('T', ' ').slice(0, 16) }}</span>
         </header>
-        <section class="order-items">
-          <p v-for="(it, i) in o.items" :key="i" class="item">
-            <span class="item-title">{{ it.title }}</span>
-            <span class="md-num item-spec">{{ it.specJson }}</span>
-            <span class="md-num item-qty">x{{ it.count }}</span>
-            <span class="md-num item-amount">¥ {{ it.amount.toFixed(2) }}</span>
-          </p>
+        <section class="order-body">
+          <div class="order-goods">
+            <p v-for="(it, i) in o.items" :key="i" class="item">
+              <span class="item-icon" :class="itemIcon(it.skuId)">{{ ['📱', '🎧', '👕', '📱', '🔌', '🔊', '⌨️', '🧢', '🧣', '🧥', '🥿', '🎒'][Number(it.skuId) % 12] }}</span>
+              <span class="item-title">{{ it.title }}</span>
+              <span class="item-spec">{{ formatSpec(it.specJson) }}</span>
+              <span class="md-num item-qty">×{{ it.count }}</span>
+              <span class="md-num item-amount">¥ {{ it.amount.toFixed(2) }}</span>
+            </p>
+          </div>
+          <aside class="order-side">
+            <p class="side-row"><span class="side-label">金额</span><span class="md-num side-val">合计 ¥{{ o.totalAmount.toFixed(2) }} / 实付 ¥{{ o.payAmount.toFixed(2) }}</span></p>
+            <p class="side-row"><span class="side-label">收货</span><span class="side-val">{{ o.receiverName }} · {{ o.receiverPhone.replace(/^(\d{3})\d+(\d{4})$/, '$1****$2') }}</span></p>
+            <p class="side-row"><span class="side-label">地址</span><span class="side-val addr">{{ o.receiverAddress }}</span></p>
+            <p v-if="o.trackingNo" class="side-row"><span class="side-label">物流</span><span class="side-val"><span class="md-num">{{ o.logisticsCompany }}</span> {{ o.trackingNo }}</span></p>
+            <p v-if="o.sendTime" class="side-row"><span class="side-label">发货</span><span class="side-val md-num">{{ o.sendTime.replace('T', ' ').slice(0, 16) }}</span></p>
+            <p v-if="o.receiveTime" class="side-row"><span class="side-label">签收</span><span class="side-val md-num">{{ o.receiveTime.replace('T', ' ').slice(0, 16) }}</span></p>
+          </aside>
         </section>
         <footer class="order-foot">
-          <span class="md-num foot-amount">实付 ¥ {{ o.payAmount.toFixed(2) }}</span>
-          <span v-if="o.trackingNo" class="foot-log md-num">{{ o.logisticsCompany }} · {{ o.trackingNo }}</span>
+          <span class="foot-total">共 {{ o.items.reduce((s, it) => s + it.count, 0) }} 件商品</span>
+          <span class="foot-status">实付 <b class="md-num">¥ {{ o.payAmount.toFixed(2) }}</b></span>
           <div class="foot-actions">
             <el-button v-if="o.status === 0" size="small" type="primary" @click="$router.push(`/pay/${o.orderNo}`)">
               去支付
@@ -119,7 +174,7 @@ onMounted(load)
 
 <style scoped>
 .orders {
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 24px 24px 64px;
 }
@@ -128,98 +183,191 @@ onMounted(load)
   align-items: center;
   gap: 18px;
   padding-bottom: 16px;
-  border-bottom: 1px solid var(--md-color-line);
+  border-bottom: 1px solid var(--mx-line);
 }
 .brand {
-  font-family: var(--md-font-display);
-  font-weight: 700;
-  font-size: 20px;
-  color: var(--md-color-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: var(--mx-red);
+  color: #fff;
+  font-weight: 800;
+  font-size: 17px;
 }
 .brand-sub {
-  font-size: 13px;
-  font-weight: 400;
-  color: var(--md-color-ink-sub);
-  margin-left: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--mx-ink);
 }
 .nav-link {
   font-size: 14px;
-  color: var(--md-color-ink-sub);
+  color: var(--mx-ink-2);
 }
+.nav-link:hover {
+  color: var(--mx-red);
+}
+
+/* 顶部统计栏 */
+.stats {
+  display: flex;
+  gap: 10px;
+  margin: 16px 0;
+  flex-wrap: wrap;
+}
+.stat {
+  flex: 1;
+  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 10px;
+  border: 1px solid var(--mx-line);
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.stat:hover {
+  border-color: var(--mx-red);
+}
+.stat-num {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--mx-red);
+}
+.stat-label {
+  font-size: 12px;
+  color: var(--mx-ink-2);
+}
+
 .tabs {
   margin-bottom: 8px;
 }
 .order {
-  border: 1px solid var(--md-color-line);
-  border-radius: var(--md-radius);
-  margin-bottom: 14px;
+  border: 1px solid var(--mx-line);
+  border-radius: 10px;
+  margin-bottom: 16px;
   overflow: hidden;
+  background: #fff;
 }
 .order-head {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   padding: 12px 18px;
-  background: var(--md-color-bg-tint);
+  background: var(--mx-bg-2);
   font-size: 13px;
 }
 .order-no {
   font-weight: 600;
-  color: var(--md-color-primary);
-}
-.order-status {
-  font-size: 12px;
-  letter-spacing: 0.1em;
-  color: var(--md-color-ink-sub);
+  color: var(--mx-ink);
 }
 .order-status-text {
-  color: var(--md-color-ink);
+  color: var(--mx-red);
+  font-weight: 600;
 }
 .order-time {
   margin-left: auto;
   font-size: 12px;
-  color: var(--md-color-ink-sub);
+  color: var(--mx-ink-2);
 }
-.order-items {
-  padding: 6px 18px;
+
+/* 两栏：商品 + 信息 */
+.order-body {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 0;
+}
+.order-goods {
+  padding: 8px 18px;
+  border-right: 1px solid var(--mx-line);
 }
 .item {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
-  margin: 8px 0;
+  margin: 10px 0;
   font-size: 14px;
+  color: var(--mx-ink);
+}
+.item-icon {
+  font-size: 26px;
+  line-height: 1;
 }
 .item-title {
-  flex: 1;
+  min-width: 140px;
 }
 .item-spec {
   font-size: 12px;
-  color: var(--md-color-ink-sub);
+  color: var(--mx-ink-2);
+  min-width: 100px;
 }
 .item-qty {
-  color: var(--md-color-ink-sub);
+  color: var(--mx-ink-2);
+  min-width: 34px;
+  text-align: right;
 }
 .item-amount {
   min-width: 90px;
   text-align: right;
   font-weight: 600;
+  color: var(--mx-ink);
+}
+.order-side {
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #fffdfa;
+}
+.side-row {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+}
+.side-label {
+  flex-shrink: 0;
+  color: var(--mx-ink-2);
+}
+.side-val {
+  color: var(--mx-ink);
+}
+.side-val.addr {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .order-foot {
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 12px 18px;
-  border-top: 1px solid var(--md-color-line);
+  border-top: 1px solid var(--mx-line);
+  background: var(--mx-bg-2);
 }
-.foot-amount {
-  margin-left: auto;
-  font-weight: 600;
-  color: var(--md-color-primary);
-}
-.foot-log {
+.foot-total {
   font-size: 12px;
-  color: var(--md-color-ink-sub);
+  color: var(--mx-ink-2);
+}
+.foot-status {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--mx-ink-2);
+}
+.foot-status b {
+  color: var(--mx-red);
+  font-size: 18px;
 }
 .foot-actions {
   display: flex;
@@ -228,5 +376,13 @@ onMounted(load)
 .pager {
   justify-content: center;
   margin-top: 10px;
+}
+@media (max-width: 860px) {
+  .order-body {
+    grid-template-columns: 1fr;
+  }
+  .order-goods {
+    border-right: none;
+  }
 }
 </style>

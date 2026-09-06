@@ -7,14 +7,15 @@ export const useUserStore = defineStore('user', () => {
   const type = ref<number>(Number(localStorage.getItem('mall_user_type') ?? -1))
   const username = ref<string>(localStorage.getItem('mall_username') ?? '')
   const nickname = ref<string>(localStorage.getItem('mall_nickname') ?? '')
-  const id = ref<number>(Number(localStorage.getItem('mall_user_id') ?? -1))
+  /** id 可能为雪花 ID（19 位），以字符串保存避免 JS 精度丢失 */
+  const id = ref<string>(localStorage.getItem('mall_user_id') ?? '')
 
-  function setLogin(data: { token: string; type: number; id: number; username: string; nickname?: string }) {
+  function setLogin(data: { token: string; type: number; id: number | string; username: string; nickname?: string }) {
     token.value = data.token
     type.value = data.type
     username.value = data.username
     nickname.value = data.nickname ?? data.username
-    id.value = data.id
+    id.value = String(data.id)
     localStorage.setItem('mall_token', data.token)
     localStorage.setItem('mall_user_type', String(data.type))
     localStorage.setItem('mall_username', data.username)
@@ -27,7 +28,7 @@ export const useUserStore = defineStore('user', () => {
     type.value = -1
     username.value = ''
     nickname.value = ''
-    id.value = -1
+    id.value = ''
     localStorage.removeItem('mall_token')
     localStorage.removeItem('mall_user_type')
     localStorage.removeItem('mall_username')

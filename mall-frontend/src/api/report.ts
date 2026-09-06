@@ -27,5 +27,5 @@ export interface Dashboard {
   financeFlow: FinanceFlow[]
 }
 
-export const getDashboard = (merchantId?: number) =>
+export const getDashboard = (merchantId?: number | string) =>
   http.get<never, Dashboard>('/report/dashboard', { params: { merchantId } })

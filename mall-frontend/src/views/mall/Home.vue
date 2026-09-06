@@ -71,7 +71,7 @@ function jumpAd(linkUrl?: string) {
   if (!linkUrl) return
   const m = linkUrl.match(/\/category\/(\d+)/)
   if (m) {
-    const cat = categories.value.find((c) => c.id === Number(m[1]) && c.parentId === 0)
+    const cat = categories.value.find((c) => String(c.id) === m[1] && c.parentId === 0)
     if (cat) {
       pickCategory(cat.id)
       document.querySelector('.grid')?.scrollIntoView({ behavior: 'smooth' })
@@ -90,12 +90,15 @@ async function loadAdverts() {
   startBanner()
 }
 
+const PAGE_SIZE = 12
+const currentPage = ref(1)
+
 async function loadProducts() {
   loading.value = true
   try {
     const page = await getProductList({
-      page: 1,
-      size: 12,
+      page: currentPage.value,
+      size: PAGE_SIZE,
       categoryId: activeCategory.value,
       keyword: keyword.value || undefined,
     })
@@ -108,13 +111,21 @@ async function loadProducts() {
   }
 }
 
-function pickCategory(id?: number) {
-  activeCategory.value = id
+function pickCategory(id?: number | string) {
+  activeCategory.value = id ? Number(id) : undefined
+  currentPage.value = 1
   loadProducts()
 }
 
 function onSearch() {
+  currentPage.value = 1
   loadProducts()
+}
+
+function onPageChange(p: number) {
+  currentPage.value = p
+  loadProducts()
+  document.querySelector('.grid')?.scrollIntoView({ behavior: 'smooth' })
 }
 
 onMounted(() => {
@@ -170,7 +181,7 @@ onBeforeUnmount(stopBanner)
         v-for="c in categories"
         :key="c.id"
         class="cat"
-        :class="{ cat_active: activeCategory === c.id && c.parentId === 0 }"
+        :class="{ cat_active: String(activeCategory) === String(c.id) && c.parentId === 0 }"
         @click="pickCategory(c.parentId === 0 ? c.id : undefined)"
       >
         {{ c.name }}
@@ -206,7 +217,7 @@ onBeforeUnmount(stopBanner)
     </section>
 
     <section v-loading="loading" class="grid">
-      <router-link v-for="p in products" :key="p.id" class="card" :to="`/product/${p.id}`">
+      <router-link v-for="p in products" :key="String(p.id)" class="card" :to="`/product/${p.id}`">
         <div class="card-img"><img :src="p.mainImg" :alt="p.title" /></div>
         <div class="card-body">
           <p class="card-title">{{ p.title }}</p>
@@ -221,6 +232,16 @@ onBeforeUnmount(stopBanner)
       </router-link>
       <p v-if="!loading && !products.length" class="empty">空货架 —— 商家上架后自动出现</p>
     </section>
+
+    <div v-if="total > PAGE_SIZE" class="pager">
+      <el-pagination
+        layout="prev, pager, next, total"
+        :total="total"
+        :page-size="PAGE_SIZE"
+        :current-page="currentPage"
+        @current-change="onPageChange"
+      />
+    </div>
   </div>
 </template>
 
@@ -533,6 +554,11 @@ onBeforeUnmount(stopBanner)
   color: var(--mx-ink-2);
   font-size: 14px;
   padding: 40px 0;
+}
+.pager {
+  display: flex;
+  justify-content: center;
+  margin-top: 28px;
 }
 
 @media (max-width: 860px) {

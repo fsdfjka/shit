@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { createPay, getPayStatus, mockPayCallback } from '@/api/pay'
+import { getMyOrders } from '@/api/order'
 
 const route = useRoute()
 const router = useRouter()
@@ -16,7 +17,9 @@ let timer: ReturnType<typeof setInterval> | undefined
 async function load() {
   paying.value = true
   try {
-    payNo.value = await createPay(orderNo.value)
+    const no = await createPay(orderNo.value)
+    payNo.value = String(no ?? '')
+    paying.value = false
   } catch {
     ElMessage.error('创建支付单失败')
     paying.value = false
@@ -34,8 +37,16 @@ async function mockCallback(success: boolean) {
   paying.value = false
 }
 
+/** 真实应支付金额（订单快照），金额核对非空即必须与支付单一致 */
 async function getAmount() {
-  return 1 // 金额核对由后端与支付单比对；此处仅触发回调，真实金额应由渠道携带
+  try {
+    const res = await getMyOrders(undefined, 1, 50)
+    const o = res.records.find((r) => r.orderNo === orderNo.value)
+    if (o) return Number(o.payAmount)
+  } catch {
+    /* 查询失败走演示金额 1（将被后端拒收，符合预期） */
+  }
+  return 1
 }
 
 async function nextStep() {
