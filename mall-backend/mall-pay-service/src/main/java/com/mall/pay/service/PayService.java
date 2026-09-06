@@ -140,7 +140,9 @@ public class PayService {
         if (order == null) {
             throw new BizException("订单不存在");
         }
-        if (order.getStatus() != 1 && order.getStatus() != 2) {
+        // 已支付(1)/已发货(2)/已收货(3) 均可申请退款（状态机合法线见 database-design §4）
+        Integer st = order.getStatus();
+        if (st == null || (st != 1 && st != 2 && st != 3)) {
             throw new BizException("当前状态不能申请退款");
         }
         // 一单一次退款：同单已有处理中/成功的退款单则拒绝
@@ -195,13 +197,16 @@ public class PayService {
     // 私有
     // -----------------------------------------------------
 
-    /** Mock 回调体格式：amount 直接从请求参数取 {amount: "3299.00"} */
+    /** Mock 回调体格式："amount=<数值>"，仅取纯数字部分 */
     private String extractAmount(String body) {
-        int i = body.indexOf("amount");
-        if (i < 0) {
+        int eq = body.indexOf('=');
+        if (eq < 0) {
             return null;
         }
-        return body.substring(i + 6).trim();
+        String raw = body.substring(eq + 1).trim();
+        // 丢弃任何非数字字符（如逗号/货币符号），演示渠道只带纯数字
+        String cleaned = raw.replaceAll("[^0-9.]", "");
+        return cleaned.isEmpty() ? null : cleaned;
     }
 
     private String genNo(String prefix) {

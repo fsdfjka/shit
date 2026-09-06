@@ -79,7 +79,7 @@
 
 | # | 任务 | 状态 | 完成日期 | 说明 |
 |---|---|---|---|---|
-| 9.1 | 全模块接口联调（**此时才启用测试**） | ▶ | | **代码与配置已就绪**（网关路由/services 全部编译通过），执行前置为运行环境就绪：192.168.193.131 中间件（docker compose up -d）+ MySQL localhost 初始化 init.sql；届时执行全链路联调 + JUnit 用例 + 下单/支付压测。按既定约定未提前做联调测试 |
+| 9.1 | 全模块接口联调（**此时才启用测试**） | ▶ | 2026-09-06 | **全链路冒烟已通过：scripts/smoke.py 23/23 PASS**（登录3身份/游客浏览/加购合并/拆单下单/库存预扣/支付回调幂等(金额拒收预期)/发货/确认收货/退款/提现驳回回补/双端看板）。运行修复：jar repackage 绑定、-parameters 编译参数、JDBC characterEncoding=UTF-8、网关 portal/adverts 路由与回调白名单、管理员登录 type=1、库存 Redis 预热、MQ 失败降级。待环境项：**RocketMQ broker 上报地址**（docker 内网 IP 导致延迟消息发送失败——下单已降级不阻断，超时取消需在 192.168.193.131 确认 broker.conf 挂载生效后重启 broker 复测）；JUnit/压测用例待联调完成后补 |
 | 9.2 | Docker 镜像打包 + 部署文档 | ✅ | 2026-09-06 | docker/docker-compose.yml（nacos2.3/redis7.2/rocketmq5.1.4+dashboard/sentinel-dashboard）、broker.conf（brokerIP1 宿主）、通用 Dockerfile（JDK17）；docs/deploy.md：compose 启动→建库→打包镜像→启动顺序→演示参数（延迟等级 3=10s 演示） |
 | 9.3 | 全套项目文档（需求/数据库/概要/接口/日报） | ✅ | 2026-09-06 | docs/requirements.md（角色/功能/非功能/验收）、architecture.md（拓扑/服务边界/三大时序/鉴权）、api.md（全端点清单）、daily-report.md（日报模板）、database-design.md（已有）+ CLAUDE.md 总纲 |
 

@@ -13,7 +13,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     # MySQL 在 localhost。本服务管辖 pay_info/refund，并直连同库 order/merchant 做
     # "支付成功-订单状态同步-商家余额入账"的同事务写（单库演示约定，注释见 PayService）。
-    url: jdbc:mysql://localhost:3306/mall_x?useUnicode=true&characterEncoding=utf8mb4&useSSL=false&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://localhost:3306/mall_x?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai
     username: root
     password: root        # 按本机实际密码修改
   data:

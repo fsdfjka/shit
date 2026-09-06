@@ -27,8 +27,9 @@ public interface OrderPayMapper {
             "WHERE order_no = #{orderNo} AND status = 0")
     int markPaid(@Param("orderNo") String orderNo);
 
-    /** 退款申请：仅已支付可置退款中 */
-    @Update("UPDATE `order` SET status = 5, last_status = 1 WHERE order_no = #{orderNo} AND status = 1")
+    /** 退款申请：已支付(1)/已发货(2)/已收货(3) 均可置退款中（状态机扩展线） */
+    @Update("UPDATE `order` SET status = 5, last_status = status " +
+            "WHERE order_no = #{orderNo} AND status IN (1, 2, 3)")
     int markRefunding(@Param("orderNo") String orderNo);
 
     /** 退款成功：仅退款中可置已退款 */

@@ -3,6 +3,8 @@ package com.mall.order;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import com.mall.common.MyMetaObjectHandler;
+import org.springframework.context.annotation.Import;
 
 /**
  * 订单域服务：购物车、下单（跨店拆单 + 库存扣减）、订单状态机、超时取消（RocketMQ 延迟消息）。
@@ -10,6 +12,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @SpringBootApplication(scanBasePackages = "com.mall")
 @MapperScan("com.mall.order.mapper")
+@Import(MyMetaObjectHandler.class)
 public class OrderApplication {
 
     public static void main(String[] args) {

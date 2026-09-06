@@ -30,7 +30,7 @@ spring:
         - id: mall-product-service
           uri: lb://mall-product-service
           predicates:
-            - Path=/api/portal/products/**,/api/portal/categories/**,/api/admin/categories/**,/api/admin/adverts/**
+            - Path=/api/portal/products/**,/api/portal/categories/**,/api/portal/adverts/**,/api/admin/categories/**,/api/admin/adverts/**
         - id: mall-product-manage
           uri: lb://mall-product-service
           predicates:

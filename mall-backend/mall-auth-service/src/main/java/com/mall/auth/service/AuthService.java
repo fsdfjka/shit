@@ -39,9 +39,12 @@ public class AuthService {
             if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
                 throw new BizException("密码错误");
             }
+            // 平台管理员（user.role=1）签发 type=1，普通用户 type=0
+            Integer type = user.getRole() != null && user.getRole() == 1
+                    ? MallConstants.TYPE_ADMIN : MallConstants.TYPE_USER;
             return new LoginResponse(
-                    jwtUtil.create(user.getId(), MallConstants.TYPE_USER, user.getUsername()),
-                    MallConstants.TYPE_USER, user.getId(), user.getUsername(), user.getNickname());
+                    jwtUtil.create(user.getId(), type, user.getUsername()),
+                    type, user.getId(), user.getUsername(), user.getNickname());
         }
 
         Merchant merchant = merchantMapper.selectOne(new LambdaQueryWrapper<Merchant>()

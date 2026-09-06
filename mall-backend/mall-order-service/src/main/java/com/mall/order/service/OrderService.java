@@ -12,6 +12,8 @@ import com.mall.order.vo.OrderVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -53,10 +55,18 @@ public class OrderService {
     private final ProductMerchantMapper productMerchantMapper;
     private final ProductTitleMapper productTitleMapper;
     private final PayInfoMapper payInfoMapper;
+
     private final StringRedisTemplate redisTemplate;
-    private final DefaultRedisScript<Long> stockDeductScript;
-    private final DefaultRedisScript<Long> stockRefundScript;
     private final RocketMQTemplate rocketMQTemplate;
+
+    /** 两个 Lua 脚本为同类型 bean：字段注入 + @Qualifier 按名区分（Lombok 构造器不携带 @Qualifier） */
+    @Autowired
+    @Qualifier("stockDeductScript")
+    private DefaultRedisScript<Long> stockDeductScript;
+
+    @Autowired
+    @Qualifier("stockRefundScript")
+    private DefaultRedisScript<Long> stockRefundScript;
 
     @Value("${mall.order.timeout-delay-level}")
     private int timeoutDelayLevel;
@@ -166,10 +176,16 @@ public class OrderService {
         }
 
         // 5. 超时取消延迟消息（消费端做状态校验，重复消费幂等）
+        // 健壮性：broker 不可用时仅停用"超时自动取消"，不阻断下单主链路（手动取消仍可用；
+        // broker 侧修复见 docs/deploy.md §7 备注：确认 broker.conf 挂载生效、brokerIP1 配宿主地址）
         for (String orderNo : orderNos) {
             org.springframework.messaging.Message<String> msg =
                     org.springframework.messaging.support.MessageBuilder.withPayload(orderNo).build();
-            rocketMQTemplate.syncSend(TIMEOUT_TOPIC, msg, 5000, timeoutDelayLevel);
+            try {
+                rocketMQTemplate.syncSend(TIMEOUT_TOPIC, msg, 5000, timeoutDelayLevel);
+            } catch (Exception e) {
+                log.warn("[超时取消] 延迟消息发送失败（超时取消暂不可用）: orderNo={} cause={}", orderNo, e.getMessage());
+            }
         }
         return orderNos;
     }

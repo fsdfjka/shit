@@ -3,6 +3,8 @@ package com.mall.product;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import com.mall.common.MyMetaObjectHandler;
+import org.springframework.context.annotation.Import;
 
 /**
  * 商品域服务：类目/商品/SKU/广告。
@@ -11,6 +13,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @SpringBootApplication(scanBasePackages = "com.mall")
 @MapperScan("com.mall.product.mapper")
+@Import(MyMetaObjectHandler.class)
 public class ProductApplication {
 
     public static void main(String[] args) {

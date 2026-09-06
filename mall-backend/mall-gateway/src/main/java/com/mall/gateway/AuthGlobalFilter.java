@@ -41,14 +41,15 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
 
     private final AntPathMatcher matcher = new AntPathMatcher();
 
-    /** 游客白名单：无需 token（登录二字符 + 商城浏览接口） */
+    /** 游客白名单：无需 token（登录/注册 + 商城浏览接口）；渠道回调无登录态，走白名单+金额核对/验签保护 */
     private static final String[] GUEST_PATHS = {
             "/api/auth/login",
             "/api/auth/register",
             "/api/auth/register/merchant",
             "/api/portal/categories",
             "/api/portal/adverts",
-            "/api/portal/products"
+            "/api/portal/products",
+            "/api/pay/mock/callback"
     };
 
     /** 路径前缀 -> 允许的身份类型 */
@@ -81,7 +82,8 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
         for (String guest : GUEST_PATHS) {
-            if (matcher.matchStart(guest, path)) {
+            // 白名单均为无歧义前缀（/api/portal/products|adverts|categories 及后缀），startsWith 更可靠
+            if (path.startsWith(guest)) {
                 if (!allowRate(path)) {
                     return deny(exchange, HttpStatus.TOO_MANY_REQUESTS, "请求过于频繁，请稍后重试");
                 }

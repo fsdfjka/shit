@@ -19,6 +19,10 @@ public interface SkuOrderMapper {
     @Select("SELECT * FROM sku WHERE id = #{id} AND status = 0")
     SkuOrder selectActive(Long id);
 
+    /** 全部在售 SKU（预热用） */
+    @Select("SELECT * FROM sku WHERE status = 0")
+    List<SkuOrder> selectAllActive();
+
     @Select("<script>" +
             "SELECT * FROM sku WHERE id IN " +
             "<foreach collection='ids' item='i' open='(' separator=',' close=')'>#{i}</foreach>" +

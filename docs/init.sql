@@ -285,12 +285,12 @@ CREATE TABLE refund (
 
 -- 账号：admin(平台管理员) / user1(普通用户) / seller1、seller2(商家)
 INSERT INTO `user` (id, username, password, nickname, role, status) VALUES
-(1, 'admin', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', '平台管理员', 1, 0),
-(2, 'user1', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', '王小明', 0, 0);
+(1, 'admin', '$2a$12$AZM5/LhZZz1qJXa/NGCuaeJrSjNmYx8Hc45JmwGUTBvfsUwXAw/hK', '平台管理员', 1, 0),
+(2, 'user1', '$2a$12$AZM5/LhZZz1qJXa/NGCuaeJrSjNmYx8Hc45JmwGUTBvfsUwXAw/hK', '王小明', 0, 0);
 
 INSERT INTO merchant (id, username, password, apply_status, audit_time, merchant_name, contact, phone, shop_name, shop_desc, shop_address, shop_status, status, balance) VALUES
-(1, 'seller1', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 1, '2026-08-20 10:00:00', '极客数码', '张三', '13800000001', '极客数码旗舰店', '正品数码,全场包邮', '广东省深圳市南山区科技园', 0, 0, 3299.00),
-(2, 'seller2', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 1, '2026-08-21 10:00:00', '悦动服饰', '李四', '13800000002', '悦动服饰官方店', '潮流服饰,无理由退换', '浙江省杭州市西湖区文三路', 0, 0, 0.00);
+(1, 'seller1', '$2a$12$AZM5/LhZZz1qJXa/NGCuaeJrSjNmYx8Hc45JmwGUTBvfsUwXAw/hK', 1, '2026-08-20 10:00:00', '极客数码', '张三', '13800000001', '极客数码旗舰店', '正品数码,全场包邮', '广东省深圳市南山区科技园', 0, 0, 3299.00),
+(2, 'seller2', '$2a$12$AZM5/LhZZz1qJXa/NGCuaeJrSjNmYx8Hc45JmwGUTBvfsUwXAw/hK', 1, '2026-08-21 10:00:00', '悦动服饰', '李四', '13800000002', '悦动服饰官方店', '潮流服饰,无理由退换', '浙江省杭州市西湖区文三路', 0, 0, 0.00);
 
 -- 类目：两级（parent_id=0 为一级）
 INSERT INTO category (id, parent_id, name, icon, sort, status) VALUES
