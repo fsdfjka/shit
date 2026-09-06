@@ -4,7 +4,7 @@ import com.mall.product.entity.Sku;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /** 商品详情（前端 SKU 全量加载、前端过滤规格 —— 见数据库文档注 1） */
@@ -31,7 +31,7 @@ public class ProductDetailVO {
 
     private Integer saleCount;
 
-    private Timestamp createTime;
+    private LocalDateTime createTime;
 
     private List<Sku> skus;
 }
