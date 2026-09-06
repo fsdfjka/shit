@@ -26,10 +26,9 @@ mybatis-plus:
     map-underscore-to-camel-case: true
 
 # MinIO 对象存储（mall-common 组件，192.168.193.131 与 Nacos/Redis 同主机）
-# 密钥经环境变量 MINIO_SECRET_KEY 注入（本地演示值 12345678；生产勿提交进版本库）
 mall:
   minio:
     endpoint: http://192.168.193.131:9000
-    access-key: ${MINIO_ACCESS_KEY:root}
-    secret-key: ${MINIO_SECRET_KEY:12345678}
+    access-key: root
+    secret-key: "12345678"
     bucket: mall-x

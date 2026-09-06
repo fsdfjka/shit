@@ -33,3 +33,12 @@ export const adminListAdverts = () => http.get<never, Advert[]>('/admin/adverts'
 export const saveAdvert = (data: Partial<Advert>) =>
   data.id ? http.put(`/admin/adverts/${data.id}`, data) : http.post('/admin/adverts', data)
 export const deleteAdvert = (id: number) => http.delete(`/admin/adverts/${id}`)
+
+/** 广告图上传（MinIO，平台管理员 type=1） */
+export const uploadAdvertImage = (file: File) => {
+  const fd = new FormData()
+  fd.append('file', file)
+  return http.post<never, { url: string }>('/admin/upload/image', fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}

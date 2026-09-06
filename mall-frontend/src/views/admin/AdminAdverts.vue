@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { adminListAdverts, deleteAdvert, saveAdvert, type Advert } from '@/api/catalog'
+import { adminListAdverts, deleteAdvert, saveAdvert, uploadAdvertImage, type Advert } from '@/api/catalog'
+import ImageUpload from '@/components/ImageUpload.vue'
 
 const list = ref<Advert[]>([])
 const dialog = ref(false)
@@ -73,8 +74,8 @@ onMounted(load)
         <el-form-item label="标题">
           <el-input v-model="form.title" />
         </el-form-item>
-        <el-form-item label="图片 URL">
-          <el-input v-model="form.imgUrl" />
+        <el-form-item label="图片">
+          <ImageUpload v-model="form.imgUrl" :upload="uploadAdvertImage" placeholder="或粘贴图片 URL" />
         </el-form-item>
         <el-form-item label="跳转链接">
           <el-input v-model="form.linkUrl" />

@@ -57,6 +57,15 @@ export const applyWithdrawal = (data: { bankName: string; accountNo: string; hol
 export const getMyWithdrawals = (page = 1, size = 10) =>
   http.get<never, Page<Withdrawal>>('/merchant/withdrawal', { params: { page, size } })
 
+/** 图片上传（店铺 logo/收款码，MinIO 返回公开 URL，DB 存 URL） */
+export const uploadMerchantImage = (file: File) => {
+  const fd = new FormData()
+  fd.append('file', file)
+  return http.post<never, { url: string }>('/merchant/upload/image', fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
+
 export const getMerchants = (applyStatus?: number, page = 1, size = 10) =>
   http.get<never, Page<MerchantRow>>('/admin/merchants', { params: { applyStatus, page, size } })
 export const auditMerchant = (id: number, pass: boolean, reason?: string) =>

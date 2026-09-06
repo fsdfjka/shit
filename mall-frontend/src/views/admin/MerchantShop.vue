@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getShop, saveShop, type MerchantProfile } from '@/api/merchant'
+import { getShop, saveShop, uploadMerchantImage, type MerchantProfile } from '@/api/merchant'
+import ImageUpload from '@/components/ImageUpload.vue'
 
 const profile = ref<MerchantProfile | null>(null)
 const loading = ref(false)
@@ -52,7 +53,7 @@ onMounted(load)
         <el-input v-model="form.shopName" />
       </el-form-item>
       <el-form-item label="店铺 Logo">
-        <el-input v-model="form.shopLogo" placeholder="图片 URL" />
+        <ImageUpload v-model="form.shopLogo" :upload="uploadMerchantImage" placeholder="或粘贴图片 URL" />
       </el-form-item>
       <el-form-item label="店铺介绍">
         <el-input v-model="form.shopDesc" type="textarea" :rows="3" />
@@ -61,7 +62,7 @@ onMounted(load)
         <el-input v-model="form.shopAddress" />
       </el-form-item>
       <el-form-item label="收款码">
-        <el-input v-model="form.payCodeUrl" placeholder="支付宝收款码图片 URL" />
+        <ImageUpload v-model="form.payCodeUrl" :upload="uploadMerchantImage" placeholder="或粘贴收款码图片 URL" />
       </el-form-item>
       <el-form-item>
         <el-button type="primary" @click="submit">保存</el-button>

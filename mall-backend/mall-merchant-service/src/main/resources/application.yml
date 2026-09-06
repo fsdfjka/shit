@@ -24,3 +24,11 @@ spring:
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
+
+# MinIO 对象存储（mall-common 组件，192.168.193.131 与 Nacos/Redis 同主机）
+mall:
+  minio:
+    endpoint: http://192.168.193.131:9000
+    access-key: root
+    secret-key: "12345678"
+    bucket: mall-x
