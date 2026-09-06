@@ -1,13 +1,15 @@
 package com.mall.report;
 
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * Report 域服务（最小骨架）。scanBasePackages="com.mall"：扫描 mall-common 公共组件。
- * 业务开发时补充 @MapperScan("com.mall.report.mapper")。
+ * 报表域服务：营收/入驻/进出账/数据看板聚合（只读模型例外——直连主库做聚合查询，
+ * 写路径均在各自业务服务；口径见 database-design §5，退款中/已退款单不计营收）。
  */
 @SpringBootApplication(scanBasePackages = "com.mall")
+@MapperScan("com.mall.report.mapper")
 public class ReportApplication {
 
     public static void main(String[] args) {

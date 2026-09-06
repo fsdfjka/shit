@@ -67,6 +67,7 @@ onMounted(() => {
         <router-link class="nav-link" to="/cart">购物车</router-link>
         <template v-if="userStore.token">
           <span class="nav-link hi">你好，{{ userStore.nickname || userStore.username }}</span>
+          <router-link class="nav-link" to="/profile">个人中心</router-link>
           <router-link class="nav-link" to="/admin">工作台</router-link>
         </template>
         <template v-else>

@@ -16,6 +16,7 @@ const router = createRouter({
         { path: 'product/:id', name: 'product-detail', component: () => import('@/views/mall/ProductDetail.vue') },
         { path: 'cart', name: 'cart', component: () => import('@/views/mall/CartPage.vue') },
         { path: 'orders', name: 'orders', component: () => import('@/views/mall/OrdersPage.vue') },
+        { path: 'profile', name: 'profile', component: () => import('@/views/mall/ProfilePage.vue') },
         { path: 'pay/:orderNo', name: 'pay', component: () => import('@/views/mall/PayPage.vue') },
         { path: 'login', name: 'login', component: () => import('@/views/mall/Login.vue') },
         { path: 'register', name: 'register', component: () => import('@/views/mall/Register.vue') },
@@ -35,7 +36,8 @@ const router = createRouter({
         { path: 'withdrawal', name: 'merchant-withdrawal', component: () => import('@/views/admin/MerchantWithdrawal.vue') },
         { path: 'shop', name: 'merchant-shop', component: () => import('@/views/admin/MerchantShop.vue') },
         { path: 'refunds', name: 'admin-refunds', component: () => import('@/views/admin/AdminRefunds.vue') },
-        // 报表等页面按里程碑 7 补充
+        { path: 'employees', name: 'admin-employees', component: () => import('@/views/admin/AdminEmployees.vue') },
+        { path: 'reports', name: 'admin-reports', component: () => import('@/views/admin/AdminReports.vue') },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/' },
@@ -47,7 +49,7 @@ router.beforeEach((to) => {
   const token = localStorage.getItem('mall_token')
   const type = Number(localStorage.getItem('mall_user_type') ?? -1)
   const isAdmin = to.path.startsWith('/admin')
-  const needAuth = isAdmin || to.name === 'orders'
+  const needAuth = isAdmin || to.name === 'orders' || to.name === 'profile'
 
   if (needAuth && !token) {
     return { name: 'login', query: { redirect: to.fullPath } }
