@@ -11,16 +11,29 @@ spring:
         server-addr: 192.168.193.131:8848
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    # MySQL 在 localhost：库名 mall_x（docs/init.sql 已建库；各服务直连仅查读自己业务域的表）
+    # MySQL 在 localhost：库名 mall_x（docs/init.sql 已建库）。本服务管辖 cart/order/order_item，
+    # 并直连同库 sku / pay_info 做"下单-扣库存"与"取消-关支付单"的同事务写——单库演示环境约定
+    #（生产拆分时扣库存应改 product-service 本地事务/消息，见 OrderService 注释）。
     url: jdbc:mysql://localhost:3306/mall_x?useUnicode=true&characterEncoding=utf8mb4&useSSL=false&serverTimezone=Asia/Shanghai
     username: root
     password: root        # 按本机实际密码修改
-  # Redis（192.168.193.131）本服务暂未启用，后续里程碑开启：
-  # data:
-  #   redis:
-  #     host: 192.168.193.131
-  #     port: 6379
+  data:
+    redis:
+      host: 192.168.193.131
+      port: 6379
+
+rocketmq:
+  name-server: 192.168.193.131:9876
+  producer:
+    group: mall-order-producer
+    send-message-timeout: 5000
 
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
+
+mall:
+  order:
+    # 超时取消延迟消息等级：RocketMQ 延迟等级 3=10s / 16=30min / 17=1h
+    # 语义为 16（30 分钟超时）；演示时可临时调成 3（10 秒）快速看取消流程
+    timeout-delay-level: 16
