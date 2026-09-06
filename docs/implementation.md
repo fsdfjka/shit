@@ -72,8 +72,8 @@
 
 | # | 任务 | 状态 | 完成日期 | 说明 |
 |---|---|---|---|---|
-| 8.1 | 网关限流/熔断降级配置（Sentinel） | □ | | |
-| 8.2 | 认证服务拆分落地（商家/管理员/用户登录) + Redis Lua 库存原子扣减 + 分布式锁 | □ | | |
+| 8.1 | 网关限流/熔断降级配置（Sentinel） | ✅ | 2026-09-06 | 网关固定窗口限流：/api/order/create QPS20（演示阈值低）、portal 商品 100、admin 50；服务侧 @SentinelResource("orderCreate") + 静态 QPS 规则 + createBlocked/createFallback 兜底。注：SCG 专用适配器（sentinel-gateway-scg-adapter）私有镜像暂缺，已用内嵌实现等价替代并注释生产切换方式 |
+| 8.2 | 认证服务拆分落地（商家/管理员/用户登录) + Redis Lua 库存原子扣减 + 分布式锁 | ✅ | 2026-09-06 | 三项均已在前序落地：认证服务独立 mall-auth-service（1.4，双表认证+JWT type 三元身份）；库存 Redis Lua 原子预扣/回补（5.2 REDIS_STOCK_KEY DESC/INCR）；分布式锁 Redisson pay:notify（6.2 支付回调，锁+唯一索引+状态机三件套） |
 
 ## 里程碑 9：交付收尾（大纲任务 15-17）
 

@@ -21,10 +21,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 /**
- * 全局鉴权过滤器（规则表化）：
+ * 全局鉴权 + 限流过滤器：
  * 1. 游客白名单：登录/注册无需 token；商城前台浏览接口（类目/广告/商品列表/详情）游客可直访；
  * 2. 其余请求校验 Authorization: Bearer <token>，合法则转发 X-User-Id / X-User-Type / X-Username 头；
- * 3. 按"路径前缀 -> 允许身份类型"规则表鉴权（见表 RULES），不匹配前缀的请求通过（由下游细管）。
+ * 3. 按"路径前缀 -> 允许身份类型"规则表鉴权（见表 RULES），不匹配前缀的请求通过（由下游细管）；
+ * 4. 接口限流（大纲任务 12：接口限流/熔断降级基础配置）：内嵌固定窗口限流器，
+ *    下单路径 QPS 20（演示观察友好），其余路径保护性 100——生产/完整版应接 Sentinel 网关适配器
+ *    （本机私有镜像暂缺 sentinel-gateway-scg-adapter，见安装说明）；服务侧熔断降级见
+ *    order-service @SentinelResource（createBlocked/createFallback）。
  * 下游服务不再解析 JWT，改读请求头（MallConstants.HEADER_*）。
  */
 @Component
@@ -59,13 +63,34 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
             "/api/report/", new int[]{MallConstants.TYPE_ADMIN, MallConstants.TYPE_MERCHANT}
     );
 
+    /** 固定窗口限流表：前缀 -> {限制窗口,QPS}。下单路径低阈值便于演示触发。 */
+    private static final Map<String, Integer> QPS_LIMITS = Map.of(
+            "/api/order/create", 20,
+            "/api/portal/products", 100,
+            "/api/admin/", 50
+    );
+    private static final long WINDOW_MILLIS = 1000L;
+    private final java.util.concurrent.ConcurrentHashMap<String, WindowState> windows = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private static final class WindowState {
+        long windowStart = System.currentTimeMillis();
+        int count = 0;
+    }
+
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
         for (String guest : GUEST_PATHS) {
             if (matcher.matchStart(guest, path)) {
+                if (!allowRate(path)) {
+                    return deny(exchange, HttpStatus.TOO_MANY_REQUESTS, "请求过于频繁，请稍后重试");
+                }
                 return chain.filter(exchange);
             }
+        }
+
+        if (!allowRate(path)) {
+            return deny(exchange, HttpStatus.TOO_MANY_REQUESTS, "请求过于频繁，请稍后重试");
         }
 
         String authorization = exchange.getRequest().getHeaders().getFirst("Authorization");
@@ -113,6 +138,30 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
                 ",\"message\":\"" + message + "\",\"data\":null}").getBytes(StandardCharsets.UTF_8);
         DataBuffer buffer = response.bufferFactory().wrap(bytes);
         return response.writeWith(Mono.just(buffer));
+    }
+
+    /** 固定窗口限流：按路径前缀匹配最接近的阈值（无匹配则放行） */
+    private boolean allowRate(String path) {
+        Integer limit = null;
+        for (Map.Entry<String, Integer> e : QPS_LIMITS.entrySet()) {
+            if (path.startsWith(e.getKey())) {
+                limit = e.getValue();
+                break;
+            }
+        }
+        if (limit == null) {
+            return true;
+        }
+        WindowState state = windows.computeIfAbsent(path, k -> new WindowState());
+        synchronized (state) {
+            long now = System.currentTimeMillis();
+            if (now - state.windowStart >= WINDOW_MILLIS) {
+                state.windowStart = now;
+                state.count = 0;
+            }
+            state.count++;
+            return state.count <= limit;
+        }
     }
 
     @Override

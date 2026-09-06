@@ -1,5 +1,6 @@
 package com.mall.order.service;
 
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mall.common.BizException;
@@ -66,6 +67,11 @@ public class OrderService {
     // 下单
     // -----------------------------------------------------
 
+    /**
+     * 下单（Sentinel 保护：demo 下 service 侧默认不加载 QPS 规则——由网关 order-create-api 限流
+     * 生效；annotation 用于演示 block/fallback 兜底；接入 Dashboard 后可在服务侧下发流控规则）。
+     */
+    @SentinelResource(value = "orderCreate", blockHandler = "createBlocked", fallback = "createFallback")
     @Transactional
     public List<String> create(Long userId, CreateOrderRequest req) {
         // 下单幂等：Redis 请求键，重放直接失败
@@ -272,6 +278,21 @@ public class OrderService {
             throw new BizException("订单不存在");
         }
         return toVO(o);
+    }
+
+    // -----------------------------------------------------
+    // Sentinel 兜底（blockHandler 限流熔断/fallback 异常降级）
+    // -----------------------------------------------------
+
+    public List<String> createBlocked(Long userId, CreateOrderRequest req, Throwable ex) {
+        throw new BizException("下单请求过于频繁，请稍后再试");
+    }
+
+    public List<String> createFallback(Long userId, CreateOrderRequest req, Throwable ex) {
+        if (ex instanceof BizException) {
+            throw (BizException) ex;
+        }
+        throw new BizException("下单服务繁忙，请稍后再试");
     }
 
     // -----------------------------------------------------
