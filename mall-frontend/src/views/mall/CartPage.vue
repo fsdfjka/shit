@@ -21,10 +21,10 @@ const checkoutDialog = ref(false)
 const payDialog = ref(false)
 const createdOrders = ref<string[]>([])
 const receiver = reactive({ name: '', phone: '', address: '' })
-/** 收货地址列表（结算时可切换选择） */
+/** 收货地址列表（结算时可下拉选择） */
 const addrList = ref<Address[]>([])
-/** 当前选中的地址 id；'manual' 表示手动填写 */
-const selectedAddrId = ref<number | 'manual' | null>(null)
+/** 当前选中的地址 id；null 表示未选择（需手动填写） */
+const selectedAddrId = ref<number | null>(null)
 
 const isLogged = computed(() => !!userStore.token)
 const checkedItems = computed(() => items.value.filter((i) => i.checked === 1))
@@ -134,10 +134,10 @@ function fillReceiver(a: Address) {
   receiver.address = addrText(a)
 }
 
-/** 选择收货地址：地址卡片或手动填写 */
-function selectAddr(id: number | 'manual') {
+/** 选择收货地址：选中下拉项即回填；未选则手动填写 */
+function selectAddr(id: number | null) {
   selectedAddrId.value = id
-  if (id === 'manual') {
+  if (id == null) {
     receiver.name = ''
     receiver.phone = ''
     receiver.address = ''
@@ -164,7 +164,7 @@ async function openCheckout() {
   }
   // 默认选中默认地址；无地址则进入手动填写
   const def = addrList.value.find((a) => a.isDefault === 1) ?? addrList.value[0]
-  selectedAddrId.value = def?.id ?? 'manual'
+  selectedAddrId.value = def?.id ?? null
   if (def) {
     fillReceiver(def)
   } else {
@@ -261,33 +261,21 @@ onMounted(load)
     <el-dialog v-model="checkoutDialog" title="填写收货信息（下单快照）" width="460">
       <div class="addr-picker">
         <p class="addr-title">选择收货地址</p>
-        <template v-if="addrList.length">
-          <div
+        <el-select
+          v-model="selectedAddrId"
+          class="addr-select"
+          placeholder="请选择收货地址"
+          clearable
+          @change="selectAddr"
+        >
+          <el-option
             v-for="a in addrList"
             :key="a.id"
-            class="addr-item"
-            :class="{ addr_on: selectedAddrId === a.id }"
-            @click="selectAddr(a.id!)"
-          >
-            <span class="addr-dot" :class="{ dot_on: selectedAddrId === a.id }" />
-            <div class="addr-body">
-              <p class="addr-recv">
-                {{ a.receiver }} · {{ a.phone }}
-                <span v-if="a.isDefault === 1" class="addr-tag">默认</span>
-              </p>
-              <p class="addr-text">{{ addrText(a) }}</p>
-            </div>
-          </div>
-        </template>
-        <p v-else class="addr-empty">暂无收货地址，请手动填写下方信息</p>
-        <div
-          class="addr-item"
-          :class="{ addr_on: selectedAddrId === 'manual' }"
-          @click="selectAddr('manual')"
-        >
-          <span class="addr-dot" :class="{ dot_on: selectedAddrId === 'manual' }" />
-          <p class="addr-body addr-recv">手动填写</p>
-        </div>
+            :label="`${a.receiver} · ${a.phone} · ${addrText(a)}${a.isDefault === 1 ? '（默认）' : ''}`"
+            :value="a.id"
+          />
+        </el-select>
+        <p v-if="!addrList.length" class="addr-empty">暂无收货地址，请手动填写下方信息</p>
       </div>
 
       <el-form label-width="80px">
@@ -532,7 +520,7 @@ onMounted(load)
 .empty a {
   color: var(--mx-red);
 }
-/* 收货地址选择 */
+/* 收货地址下拉 */
 .addr-picker {
   margin-bottom: 14px;
 }
@@ -541,62 +529,11 @@ onMounted(load)
   font-size: 13px;
   color: var(--mx-ink-2);
 }
-.addr-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid var(--mx-line);
-  border-radius: 8px;
-  margin-bottom: 8px;
-  cursor: pointer;
-  transition: all 0.12s ease;
-}
-.addr-item:hover {
-  border-color: var(--mx-red);
-}
-.addr_on {
-  border-color: var(--mx-red);
-  background: var(--mx-red-soft);
-}
-.addr-dot {
-  width: 14px;
-  height: 14px;
-  margin-top: 4px;
-  border: 2px solid var(--mx-line);
-  border-radius: 50%;
-  flex-shrink: 0;
-  transition: all 0.12s ease;
-}
-.dot_on {
-  border-color: var(--mx-red);
-  background: var(--mx-red);
-  box-shadow: inset 0 0 0 3px #fff;
-}
-.addr-body {
-  min-width: 0;
-}
-.addr-recv {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--mx-ink);
-}
-.addr-text {
-  margin: 3px 0 0;
-  font-size: 12px;
-  color: var(--mx-ink-2);
-}
-.addr-tag {
-  margin-left: 6px;
-  padding: 1px 6px;
-  font-size: 11px;
-  color: var(--mx-red);
-  border: 1px solid var(--mx-red);
-  border-radius: 4px;
+.addr-select {
+  width: 100%;
 }
 .addr-empty {
-  margin: 0 0 8px;
+  margin: 8px 0 0;
   font-size: 13px;
   color: var(--mx-ink-2);
 }
