@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getCart, mergeCart, removeCart, updateCartChecked, updateCartCount, type CartItem } from '@/api/cart'
 import { createOrder } from '@/api/order'
-import { getAddresses } from '@/api/user'
+import { getAddresses, type Address } from '@/api/user'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
@@ -21,6 +21,10 @@ const checkoutDialog = ref(false)
 const payDialog = ref(false)
 const createdOrders = ref<string[]>([])
 const receiver = reactive({ name: '', phone: '', address: '' })
+/** 收货地址列表（结算时可切换选择） */
+const addrList = ref<Address[]>([])
+/** 当前选中的地址 id；'manual' 表示手动填写 */
+const selectedAddrId = ref<number | 'manual' | null>(null)
 
 const isLogged = computed(() => !!userStore.token)
 const checkedItems = computed(() => items.value.filter((i) => i.checked === 1))
@@ -120,6 +124,29 @@ async function remove(item: CartItem | GuestItem) {
   await load()
 }
 
+function addrText(a: Address): string {
+  return [a.province, a.city, a.district, a.detail].filter(Boolean).join(' ')
+}
+
+function fillReceiver(a: Address) {
+  receiver.name = a.receiver
+  receiver.phone = a.phone
+  receiver.address = addrText(a)
+}
+
+/** 选择收货地址：地址卡片或手动填写 */
+function selectAddr(id: number | 'manual') {
+  selectedAddrId.value = id
+  if (id === 'manual') {
+    receiver.name = ''
+    receiver.phone = ''
+    receiver.address = ''
+    return
+  }
+  const addr = addrList.value.find((a) => a.id === id)
+  if (addr) fillReceiver(addr)
+}
+
 async function openCheckout() {
   if (!isLogged.value) {
     ElMessage.info('请先登录再结算（游客购物车将在登录后自动合并）')
@@ -130,20 +157,20 @@ async function openCheckout() {
     ElMessage.warning('请先勾选商品')
     return
   }
-  receiver.name = ''
-  receiver.phone = ''
-  receiver.address = ''
-  // 自动回填默认收货地址（无默认则取第一条），失败则留空由用户手动填写
   try {
-    const addrs = await getAddresses()
-    const def = addrs.find((a) => a.isDefault === 1) ?? addrs[0]
-    if (def) {
-      receiver.name = def.receiver
-      receiver.phone = def.phone
-      receiver.address = [def.province, def.city, def.district, def.detail].filter(Boolean).join(' ')
-    }
+    addrList.value = await getAddresses()
   } catch {
-    /* 地址拉取失败：保持空即手动填写 */
+    addrList.value = []
+  }
+  // 默认选中默认地址；无地址则进入手动填写
+  const def = addrList.value.find((a) => a.isDefault === 1) ?? addrList.value[0]
+  selectedAddrId.value = def?.id ?? 'manual'
+  if (def) {
+    fillReceiver(def)
+  } else {
+    receiver.name = ''
+    receiver.phone = ''
+    receiver.address = ''
   }
   checkoutDialog.value = true
 }
@@ -232,6 +259,37 @@ onMounted(load)
     <p v-else-if="!loading" class="empty">购物车空空如也 —— <router-link to="/">去货架挑点东西</router-link></p>
 
     <el-dialog v-model="checkoutDialog" title="填写收货信息（下单快照）" width="460">
+      <div class="addr-picker">
+        <p class="addr-title">选择收货地址</p>
+        <template v-if="addrList.length">
+          <div
+            v-for="a in addrList"
+            :key="a.id"
+            class="addr-item"
+            :class="{ addr_on: selectedAddrId === a.id }"
+            @click="selectAddr(a.id!)"
+          >
+            <span class="addr-dot" :class="{ dot_on: selectedAddrId === a.id }" />
+            <div class="addr-body">
+              <p class="addr-recv">
+                {{ a.receiver }} · {{ a.phone }}
+                <span v-if="a.isDefault === 1" class="addr-tag">默认</span>
+              </p>
+              <p class="addr-text">{{ addrText(a) }}</p>
+            </div>
+          </div>
+        </template>
+        <p v-else class="addr-empty">暂无收货地址，请手动填写下方信息</p>
+        <div
+          class="addr-item"
+          :class="{ addr_on: selectedAddrId === 'manual' }"
+          @click="selectAddr('manual')"
+        >
+          <span class="addr-dot" :class="{ dot_on: selectedAddrId === 'manual' }" />
+          <p class="addr-body addr-recv">手动填写</p>
+        </div>
+      </div>
+
       <el-form label-width="80px">
         <el-form-item label="收货人">
           <el-input v-model="receiver.name" />
@@ -474,6 +532,75 @@ onMounted(load)
 .empty a {
   color: var(--mx-red);
 }
+/* 收货地址选择 */
+.addr-picker {
+  margin-bottom: 14px;
+}
+.addr-title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--mx-ink-2);
+}
+.addr-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--mx-line);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.addr-item:hover {
+  border-color: var(--mx-red);
+}
+.addr_on {
+  border-color: var(--mx-red);
+  background: var(--mx-red-soft);
+}
+.addr-dot {
+  width: 14px;
+  height: 14px;
+  margin-top: 4px;
+  border: 2px solid var(--mx-line);
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: all 0.12s ease;
+}
+.dot_on {
+  border-color: var(--mx-red);
+  background: var(--mx-red);
+  box-shadow: inset 0 0 0 3px #fff;
+}
+.addr-body {
+  min-width: 0;
+}
+.addr-recv {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--mx-ink);
+}
+.addr-text {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: var(--mx-ink-2);
+}
+.addr-tag {
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 11px;
+  color: var(--mx-red);
+  border: 1px solid var(--mx-red);
+  border-radius: 4px;
+}
+.addr-empty {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--mx-ink-2);
+}
+
 .pay-tip {
   font-size: 14px;
 }
