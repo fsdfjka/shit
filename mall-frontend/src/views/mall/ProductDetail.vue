@@ -54,15 +54,20 @@ async function load() {
   }
 }
 
-/** 点击规格值：合并已选项后按键值精确匹配 SKU，组合不存在则提示 */
+/** 点击规格值：先按键值精确匹配 SKU；若该组合不存在（SKU 未全排列），
+ *  则降级为"包含该规格值的任意 SKU"，联动其余维度，避免出现不可选的死锁组合 */
 function selectSpec(key: string, value: string) {
   const chosen = { ...selectedSpec.value, [key]: value }
-  const match = product.value?.skus.find((s) => {
+  const skus = product.value?.skus ?? []
+  let match = skus.find((s) => {
     const spec = specOf(s)
     return Object.entries(chosen).every(([k, v]) => spec[k] === v)
   })
+  if (!match) {
+    match = skus.find((s) => specOf(s)[key] === value)
+  }
   if (match) {
-    selectedSpec.value = chosen
+    selectedSpec.value = specOf(match)
     selectedSku.value = match
   } else {
     ElMessage.warning('该规格组合不可选，请更换搭配')
