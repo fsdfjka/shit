@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getCart, mergeCart, removeCart, updateCartChecked, updateCartCount, type CartItem } from '@/api/cart'
 import { createOrder } from '@/api/order'
+import { getAddresses } from '@/api/user'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
@@ -119,7 +120,7 @@ async function remove(item: CartItem | GuestItem) {
   await load()
 }
 
-function openCheckout() {
+async function openCheckout() {
   if (!isLogged.value) {
     ElMessage.info('请先登录再结算（游客购物车将在登录后自动合并）')
     router.push('/login')
@@ -132,6 +133,18 @@ function openCheckout() {
   receiver.name = ''
   receiver.phone = ''
   receiver.address = ''
+  // 自动回填默认收货地址（无默认则取第一条），失败则留空由用户手动填写
+  try {
+    const addrs = await getAddresses()
+    const def = addrs.find((a) => a.isDefault === 1) ?? addrs[0]
+    if (def) {
+      receiver.name = def.receiver
+      receiver.phone = def.phone
+      receiver.address = [def.province, def.city, def.district, def.detail].filter(Boolean).join(' ')
+    }
+  } catch {
+    /* 地址拉取失败：保持空即手动填写 */
+  }
   checkoutDialog.value = true
 }
 
