@@ -97,9 +97,12 @@ async function onCountChange(item: CartItem | GuestItem, count: number) {
     const g = list.find((i) => i.skuId === item.skuId)
     if (g) g.count = count
     writeGuestCart(list)
-    return
+  } else {
+    await updateCartCount(item.skuId, count)
   }
-  await updateCartCount(item.skuId, count)
+  // 同步本行数量，触发小计/合计联动更新
+  const local = items.value.find((i) => i.skuId === item.skuId)
+  if (local) local.count = count
 }
 
 async function onChecked(item: CartItem | GuestItem, checked: number) {
