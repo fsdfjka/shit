@@ -181,8 +181,8 @@ onBeforeUnmount(stopBanner)
         v-for="c in categories"
         :key="c.id"
         class="cat"
-        :class="{ cat_active: String(activeCategory) === String(c.id) && c.parentId === 0 }"
-        @click="pickCategory(c.parentId === 0 ? c.id : undefined)"
+        :class="{ cat_active: String(activeCategory) === String(c.id) }"
+        @click="pickCategory(c.id)"
       >
         {{ c.name }}
       </span>
