@@ -21,6 +21,8 @@ const remainSeconds = ref<number | null>(null)
 let timer: ReturnType<typeof setInterval> | undefined
 /** 是否真实支付宝沙箱渠道（决定展示"去支付宝付款"还是"模拟支付"按钮） */
 const realChannel = computed(() => voucher.value?.realChannel === true)
+/** 支付动作锁定：已支付 / 订单已取消 / 倒计时到 0（超时后渠道侧 timeout_express 也已过期，继续支付只会进悬挂款流程） */
+const payLocked = computed(() => paid.value || cancelled.value || remainSeconds.value === 0)
 
 async function load() {
   loading.value = true
@@ -170,7 +172,7 @@ onUnmounted(() => clearInterval(timer))
         <!-- 真实支付宝沙箱渠道 -->
         <template v-if="realChannel">
           <div class="actions">
-            <el-button type="primary" size="large" :disabled="paid" @click="gotoAlipay">前往支付宝付款</el-button>
+            <el-button type="primary" size="large" :disabled="payLocked" @click="gotoAlipay">前往支付宝付款</el-button>
             <el-button size="large" :disabled="paid" @click="refreshStatus">我已付款，刷新状态</el-button>
             <router-link class="back" to="/orders">返回订单列表</router-link>
           </div>
@@ -184,8 +186,8 @@ onUnmounted(() => clearInterval(timer))
             配置真实沙箱密钥后将自动切换为支付宝收银台（见 docs/支付宝沙箱接入指南.md）。
           </p>
           <div class="actions">
-            <el-button type="primary" size="large" :disabled="paid" @click="mockCallback(true)">模拟支付成功</el-button>
-            <el-button size="large" :disabled="failed" @click="mockCallback(false)">模拟支付失败</el-button>
+            <el-button type="primary" size="large" :disabled="payLocked" @click="mockCallback(true)">模拟支付成功</el-button>
+            <el-button size="large" :disabled="payLocked" @click="mockCallback(false)">模拟支付失败</el-button>
             <router-link class="back" to="/orders">返回订单列表</router-link>
           </div>
         </template>
